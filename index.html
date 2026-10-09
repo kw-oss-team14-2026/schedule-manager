@@ -28,6 +28,12 @@
     li { padding: 12px 0; border-bottom: 1px solid #eee; overflow-wrap: anywhere; }
     .hint { color: #717589; font-size: 13px; line-height: 1.7; }
     #status { color: #a32e40; }
+    /* 선택 날짜를 강조하고, 오늘 날짜의 기본 강조는 선택 표시와 구분합니다. */
+    #calendar .fc-daygrid-day.selected-day,
+    #calendar .fc-timegrid-col.selected-day { background: #eee9ff; }
+    #calendar .fc-daygrid-day.selected-day .fc-daygrid-day-number { background: #6b4ee6; color: white; border-radius: 50%; min-width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
+    #calendar .fc-day-today:not(.selected-day) { background: transparent; }
+    #calendar .fc-day-today:not(.selected-day) .fc-daygrid-day-number { background: transparent; color: inherit; }
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } .panel { padding: 16px; } }
   </style>
 </head>
@@ -46,15 +52,7 @@
       <h2>선택한 날짜의 일정</h2>
       <p id="selected-date" aria-live="polite"></p>
       <ul id="schedule-list"></ul>
-      <!-- 일정 담당자가 확장할 구역 -->
-      <form id="schedule-form">
-        <label for="schedule-title">일정 제목</label>
-        <input id="schedule-title" placeholder="예: 자료구조 과제 제출" maxlength="100" required>
-        <label for="schedule-date">날짜</label>
-        <input id="schedule-date" type="date" required>
-        <button id="add-schedule-btn" type="submit">일정 추가</button>
-      </form>
-      <p class="hint">날짜를 클릭해 일정을 확인하세요.<br>현재는 화면 확인용 예시입니다. 새로고침하면 추가한 일정이 초기화됩니다.</p>
+      <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
     </section>
   </main>
   <script>
@@ -65,13 +63,11 @@
         String(today.getMonth() + 1).padStart(2, "0"),
         String(today.getDate()).padStart(2, "0")].join("-");
       let selectedDate = todayStr;
-      const dateInput = document.getElementById("schedule-date");
       const list = document.getElementById("schedule-list");
 
       if (!window.FullCalendar) {
         document.getElementById("status").textContent =
           "달력을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해주세요.";
-        document.getElementById("add-schedule-btn").disabled = true;
         return;
       }
 
@@ -86,14 +82,12 @@
           right: "dayGridMonth,timeGridWeek"
         },
         buttonText: { today: "오늘", month: "월", week: "주", day: "일" },
-        // 예시 일정은 실행하는 날을 기준으로 표시합니다.
-        events: [
-          { id: "sample-1", title: "자료구조 과제 (예시)", start: todayStr, allDay: true },
-          { id: "sample-2", title: "팀 프로젝트 회의 (예시)", start: todayStr + "T18:00:00" }
-        ],
+        events: [],
+        datesSet: function () { highlightSelectedDate(); },
         dateClick: function (info) {
           selectedDate = info.dateStr.slice(0, 10);
           renderScheduleList();
+          highlightSelectedDate();
         },
         eventClick: function (info) {
           selectedDate = info.event.startStr.slice(0, 10);
@@ -101,9 +95,19 @@
         }
       });
 
+      function highlightSelectedDate() {
+        document.querySelectorAll("#calendar .selected-day").forEach(function (cell) {
+          cell.classList.remove("selected-day");
+        });
+        document.querySelectorAll("#calendar [data-date]").forEach(function (cell) {
+          if (cell.getAttribute("data-date") === selectedDate) {
+            cell.classList.add("selected-day");
+          }
+        });
+      }
+
       function renderScheduleList() {
         document.getElementById("selected-date").textContent = selectedDate;
-        dateInput.value = selectedDate;
         list.replaceChildren();
         const events = calendar.getEvents().filter(function (event) {
           return event.startStr.slice(0, 10) === selectedDate;
@@ -121,28 +125,9 @@
         });
       }
 
-      document.getElementById("schedule-form").addEventListener("submit", function (event) {
-        event.preventDefault();
-        const titleInput = document.getElementById("schedule-title");
-        const title = titleInput.value.trim();
-        if (!title) {
-          titleInput.setCustomValidity("일정 제목을 입력해주세요.");
-          titleInput.reportValidity();
-          return;
-        }
-        const date = dateInput.value;
-        calendar.addEvent({ title: title, start: date, allDay: true });
-        selectedDate = date;
-        calendar.gotoDate(date);
-        titleInput.value = "";
-        renderScheduleList();
-      });
-      document.getElementById("schedule-title").addEventListener("input", function () {
-        this.setCustomValidity("");
-      });
-
       calendar.render();
       renderScheduleList();
+      highlightSelectedDate();
     });
   </script>
 </body>
