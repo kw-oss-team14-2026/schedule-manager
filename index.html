@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>대학생 일정 관리</title>
+  <!-- FullCalendar 표준 번들: 공식 문서의 script 태그 방식 -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/all/global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/themes/monarch/global.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/skeleton.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/themes/monarch/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/themes/monarch/palettes/purple.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f5f6fa; color: #252738; font-family: system-ui, "Malgun Gothic", sans-serif; }
+    header { background: white; border-bottom: 1px solid #e5e7ef; padding: 24px max(24px, calc((100vw - 1200px)/2)); }
+    h1 { margin: 0; font-size: 24px; }
+    header p { margin: 8px 0 0; color: #717589; }
+    main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; max-width: 1248px; margin: 28px auto; padding: 0 24px; }
+    .panel { background: white; border: 1px solid #e5e7ef; border-radius: 16px; padding: 24px; min-width: 0; }
+    h2 { margin: 0 0 8px; font-size: 19px; }
+    #selected-date { color: #6b4ee6; font-weight: 600; }
+    label { display: block; margin: 16px 0 6px; font-size: 14px; }
+    input, button { font: inherit; }
+    input { width: 100%; border: 1px solid #d7dbea; border-radius: 8px; padding: 10px; }
+    button[type="submit"] { width: 100%; border: 0; border-radius: 8px; background: #6b4ee6; color: white; padding: 12px; margin-top: 16px; cursor: pointer; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 12px 0; border-bottom: 1px solid #eee; overflow-wrap: anywhere; }
+    .hint { color: #717589; font-size: 13px; line-height: 1.7; }
+    #status { color: #a32e40; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } .panel { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>대학생 일정 관리</h1>
+    <p>수업 · 과제 · 시험 · 팀 프로젝트를 한눈에</p>
+  </header>
+  <main>
+    <section class="panel" aria-label="달력">
+      <!-- 달력 담당자가 수정할 구역 -->
+      <div id="calendar"></div>
+      <p id="status" role="status"></p>
+    </section>
+    <section class="panel" id="schedule">
+      <h2>선택한 날짜의 일정</h2>
+      <p id="selected-date" aria-live="polite"></p>
+      <ul id="schedule-list"></ul>
+      <!-- 일정 담당자가 확장할 구역 -->
+      <form id="schedule-form">
+        <label for="schedule-title">일정 제목</label>
+        <input id="schedule-title" placeholder="예: 자료구조 과제 제출" maxlength="100" required>
+        <label for="schedule-date">날짜</label>
+        <input id="schedule-date" type="date" required>
+        <button id="add-schedule-btn" type="submit">일정 추가</button>
+      </form>
+      <p class="hint">날짜를 클릭해 일정을 확인하세요.<br>현재는 화면 확인용 예시입니다. 새로고침하면 추가한 일정이 초기화됩니다.</p>
+    </section>
+  </main>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 로컬 날짜: UTC 변환으로 날짜가 바뀌는 것을 방지합니다.
+      const today = new Date();
+      const todayStr = [today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0")].join("-");
+      let selectedDate = todayStr;
+      const dateInput = document.getElementById("schedule-date");
+      const list = document.getElementById("schedule-list");
+
+      if (!window.FullCalendar) {
+        document.getElementById("status").textContent =
+          "달력을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해주세요.";
+        document.getElementById("add-schedule-btn").disabled = true;
+        return;
+      }
+
+      const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+        initialView: "dayGridMonth",
+        initialDate: todayStr,
+        locale: "ko",
+        height: "auto",
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek"
+        },
+        buttonText: { today: "오늘", month: "월", week: "주", day: "일" },
+        // 예시 일정은 실행하는 날을 기준으로 표시합니다.
+        events: [
+          { id: "sample-1", title: "자료구조 과제 (예시)", start: todayStr, allDay: true },
+          { id: "sample-2", title: "팀 프로젝트 회의 (예시)", start: todayStr + "T18:00:00" }
+        ],
+        dateClick: function (info) {
+          selectedDate = info.dateStr.slice(0, 10);
+          renderScheduleList();
+        },
+        eventClick: function (info) {
+          selectedDate = info.event.startStr.slice(0, 10);
+          renderScheduleList();
+        }
+      });
+
+      function renderScheduleList() {
+        document.getElementById("selected-date").textContent = selectedDate;
+        dateInput.value = selectedDate;
+        list.replaceChildren();
+        const events = calendar.getEvents().filter(function (event) {
+          return event.startStr.slice(0, 10) === selectedDate;
+        });
+        if (events.length === 0) {
+          const empty = document.createElement("li");
+          empty.textContent = "등록된 일정이 없습니다.";
+          list.appendChild(empty);
+        }
+        events.forEach(function (event) {
+          const item = document.createElement("li");
+          // 입력한 제목을 HTML이 아닌 텍스트로 표시합니다.
+          item.textContent = event.title;
+          list.appendChild(item);
+        });
+      }
+
+      document.getElementById("schedule-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const titleInput = document.getElementById("schedule-title");
+        const title = titleInput.value.trim();
+        if (!title) {
+          titleInput.setCustomValidity("일정 제목을 입력해주세요.");
+          titleInput.reportValidity();
+          return;
+        }
+        const date = dateInput.value;
+        calendar.addEvent({ title: title, start: date, allDay: true });
+        selectedDate = date;
+        calendar.gotoDate(date);
+        titleInput.value = "";
+        renderScheduleList();
+      });
+      document.getElementById("schedule-title").addEventListener("input", function () {
+        this.setCustomValidity("");
+      });
+
+      calendar.render();
+      renderScheduleList();
+    });
+  </script>
+</body>
+</html>
+
