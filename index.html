@@ -45,6 +45,11 @@
   <main>
     <section class="panel" aria-label="달력">
       <!-- 달력 담당자가 수정할 구역 -->
+      <!-- 검색 기능 -->
+      <label for="search-input">일정 검색</label>
+      <input type="search" id="search-input" placeholder="일정 제목을 입력하세요" disabled>
+      <p id="search-summary" class="hint" role="status"></p>
+      <ul id="search-results" aria-label="일정 검색 결과"></ul>
       <div id="calendar"></div>
       <p id="status" role="status"></p>
     </section>
@@ -55,6 +60,7 @@
       <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
     </section>
   </main>
+  <script src="search.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       // 로컬 날짜: UTC 변환으로 날짜가 바뀌는 것을 방지합니다.
@@ -126,6 +132,12 @@
       }
 
       calendar.render();
+      initSearch(calendar, function (date) {
+        selectedDate = date;
+        calendar.gotoDate(date);
+        renderScheduleList();
+        highlightSelectedDate();
+      });
       renderScheduleList();
       highlightSelectedDate();
     });
