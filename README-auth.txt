@@ -1,2 +1,9 @@
-- login.html, signup.html, css/auth.css, js/auth.js는 프로젝트 루트 기준 위치에 복사합니다.
-- 현재 login_id/nickname/password 입력 검증만 동작합니다. 서버 및 DB 연결, 인증, 일정 저장은 미구현입니다.
+구현 기능: 회원가입, 로그인, 로그아웃, 세션 유지
+
+기술 스택: Express, MySQL, bcrypt, express-session
+
+필요 환경: Node.js, MySQL 8.x
+
+실행 방법: 의존성 설치, DB 생성, .env 설정, 서버 실행
+
+API 목록: /api/auth/signup, /api/auth/login, /api/auth/me, /api/auth/logout
