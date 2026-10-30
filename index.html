@@ -34,6 +34,10 @@
     #calendar .fc-daygrid-day.selected-day .fc-daygrid-day-number { background: #6b4ee6; color: white; border-radius: 50%; min-width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
     #calendar .fc-day-today:not(.selected-day) { background: transparent; }
     #calendar .fc-day-today:not(.selected-day) .fc-daygrid-day-number { background: transparent; color: inherit; }
+    .auth-nav { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; }
+    .auth-nav a { color: #6b4ee6; text-decoration: none; font-weight: 600; }
+    .auth-nav button { border: 1px solid #d7dbea; border-radius: 8px; background: white; padding: 7px 12px; cursor: pointer; }
+    .auth-nav[hidden], .auth-nav [hidden] { display: none !important; }
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } .panel { padding: 16px; } }
   </style>
 </head>
@@ -41,6 +45,12 @@
   <header>
     <h1>대학생 일정 관리</h1>
     <p>수업 · 과제 · 시험 · 팀 프로젝트를 한눈에</p>
+    <nav id="auth-nav" class="auth-nav" aria-label="계정" hidden>
+      <span id="auth-user"></span>
+      <a id="auth-login" href="login.html" hidden>로그인</a>
+      <a id="auth-signup" href="signup.html" hidden>회원가입</a>
+      <button id="auth-logout" type="button" hidden>로그아웃</button>
+    </nav>
   </header>
   <main>
     <section class="panel" aria-label="달력">
@@ -55,6 +65,58 @@
       <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
     </section>
   </main>
+  <script>
+    // 인증 표시만 담당합니다. 기존 달력 코드는 수정하지 않습니다.
+    (function () {
+      const nav = document.getElementById("auth-nav");
+      const userLabel = document.getElementById("auth-user");
+      const loginLink = document.getElementById("auth-login");
+      const signupLink = document.getElementById("auth-signup");
+      const logoutButton = document.getElementById("auth-logout");
+
+      function renderAuth(user) {
+        userLabel.textContent = user ? `${user.nickname}님` : "";
+        loginLink.hidden = Boolean(user);
+        signupLink.hidden = Boolean(user);
+        logoutButton.hidden = !user;
+        nav.hidden = false;
+      }
+
+      async function refreshAuth() {
+        try {
+          const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+          if (response.status === 401) {
+            renderAuth(null);
+            return;
+          }
+          if (!response.ok) throw new Error("로그인 상태 확인 실패");
+          const result = await response.json();
+          renderAuth(result.success && result.user ? result.user : null);
+        } catch (error) {
+          console.error("인증 상태 확인 오류:", error);
+          nav.hidden = true;
+        }
+      }
+
+      logoutButton.addEventListener("click", async function () {
+        logoutButton.disabled = true;
+        try {
+          const response = await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin"
+          });
+          if (!response.ok) throw new Error("로그아웃 실패");
+          renderAuth(null);
+        } catch (error) {
+          alert("로그아웃에 실패했습니다. 다시 시도해 주세요.");
+        } finally {
+          logoutButton.disabled = false;
+        }
+      });
+
+      refreshAuth();
+    })();
+  </script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       // 로컬 날짜: UTC 변환으로 날짜가 바뀌는 것을 방지합니다.
