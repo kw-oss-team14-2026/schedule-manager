@@ -1,0 +1,17 @@
+:root { font-family: system-ui, 'Malgun Gothic', sans-serif; color: #252738; background: #f5f6fa; }
+* { box-sizing: border-box; }
+body { min-height: 100vh; margin: 0; padding: 32px 16px; display: grid; place-items: center; }
+.auth-card { width: min(100%, 440px); padding: 36px; border: 1px solid #e5e7ef; border-radius: 16px; background: #fff; box-shadow: 0 12px 36px #2527380d; }
+h1 { margin: 22px 0 8px; font-size: 28px; }
+.subtitle { color: #717589; margin: 0 0 28px; line-height: 1.5; }
+label { display: block; margin: 16px 0 7px; font-size: 14px; font-weight: 600; }
+input { display: block; width: 100%; padding: 12px; border: 1px solid #d7dbea; border-radius: 8px; font: inherit; }
+input:focus { outline: 2px solid #a999ff; outline-offset: 1px; }
+button { display: block; width: 100%; margin-top: 24px; padding: 13px; background: #6b4ee6; color: white; border: 0; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+button:hover { background: #593bd0; }
+a { color: #6b4ee6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.back-link { font-size: 14px; }
+.footer-link { text-align: center; font-size: 14px; margin: 24px 0 0; }
+.form-message { min-height: 1.4em; margin: 12px 0 0; font-size: 14px; color: #a32e40; }
+@media (max-width: 480px) { .auth-card { padding: 24px; } }
