@@ -54,7 +54,15 @@
       <ul id="schedule-list"></ul>
       <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
     </section>
+    <section class="panel" aria-label="일정 알림">
+      <h2>일정 알림</h2>
+      <p class="hint">일정 시작 10분 전에 알려드립니다. 페이지를 열어둔 동안 동작하며, 백그라운드에서는 지연될 수 있습니다.</p>
+      <button type="button" id="test-reminder">5초 뒤 테스트 알림</button>
+      <p id="reminder-status" role="status"></p>
+      <div role="status" aria-live="polite"><ul id="reminder-list"></ul></div>
+    </section>
   </main>
+  <script src="js/notifications.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       // 로컬 날짜: UTC 변환으로 날짜가 바뀌는 것을 방지합니다.
@@ -126,10 +134,54 @@
       }
 
       calendar.render();
+
+      // 알림 담당: 현재 달력의 최신 일정 목록을 사용합니다.
+      const reminderStatus = document.getElementById("reminder-status");
+      const testButton = document.getElementById("test-reminder");
+      if (window.CampusReminders) {
+        let reminderStorage = null;
+        let testEvent = null;
+        try { reminderStorage = window.localStorage; } catch (_) {}
+        const reminders = CampusReminders.createReminder({
+          getEvents: function () {
+            const events = calendar.getEvents();
+            return testEvent ? events.concat([testEvent]) : events;
+          },
+          storage: reminderStorage,
+          onNotify: function (event) {
+            const item = document.createElement("li");
+            item.textContent = event.title + " — " +
+              new Date(event.start).toLocaleString("ko-KR") + " 시작 예정";
+            document.getElementById("reminder-list").prepend(item);
+            if (testEvent && event.id === testEvent.id) {
+              testEvent = null;
+              testButton.disabled = false;
+              reminderStatus.textContent = "테스트 알림이 표시되었습니다.";
+            }
+          }
+        });
+        reminders.start();
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) reminders.check();
+        });
+        testButton.addEventListener("click", function () {
+          testEvent = {
+            id: "reminder-test-" + Date.now(),
+            title: "알림 기능 테스트",
+            start: new Date(Date.now() + 5000),
+            reminderMinutes: 0
+          };
+          testButton.disabled = true;
+          reminderStatus.textContent = "이 페이지에서 약 5초 기다려주세요.";
+        });
+      } else {
+        testButton.disabled = true;
+        reminderStatus.textContent = "알림 파일을 불러오지 못했습니다. js/notifications.js 경로를 확인해주세요.";
+      }
+
       renderScheduleList();
       highlightSelectedDate();
     });
   </script>
 </body>
 </html>
-
