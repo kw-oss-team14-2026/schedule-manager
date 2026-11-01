@@ -34,6 +34,10 @@
     #calendar .fc-daygrid-day.selected-day .fc-daygrid-day-number { background: #6b4ee6; color: white; border-radius: 50%; min-width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
     #calendar .fc-day-today:not(.selected-day) { background: transparent; }
     #calendar .fc-day-today:not(.selected-day) .fc-daygrid-day-number { background: transparent; color: inherit; }
+    .auth-nav { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; }
+    .auth-nav a { color: #6b4ee6; text-decoration: none; font-weight: 600; }
+    .auth-nav button { border: 1px solid #d7dbea; border-radius: 8px; background: white; padding: 7px 12px; cursor: pointer; }
+    .auth-nav[hidden], .auth-nav [hidden] { display: none !important; }
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } .panel { padding: 16px; } }
   </style>
 </head>
@@ -41,6 +45,12 @@
   <header>
     <h1>대학생 일정 관리</h1>
     <p>수업 · 과제 · 시험 · 팀 프로젝트를 한눈에</p>
+    <nav id="auth-nav" class="auth-nav" aria-label="계정" hidden>
+      <span id="auth-user"></span>
+      <a id="auth-login" href="login.html" hidden>로그인</a>
+      <a id="auth-signup" href="signup.html" hidden>회원가입</a>
+      <button id="auth-logout" type="button" hidden>로그아웃</button>
+    </nav>
   </header>
   <main>
     <section class="panel" aria-label="달력">
@@ -56,13 +66,66 @@
     </section>
     <section class="panel" aria-label="일정 알림">
       <h2>일정 알림</h2>
-      <p class="hint">일정 시작 10분 전에 알려드립니다. 페이지를 열어둔 동안 동작하며, 백그라운드에서는 지연될 수 있습니다.</p>
-      <button type="button" id="test-reminder">5초 뒤 테스트 알림</button>
+      <p class="hint">로그인한 사용자의 일정 시작 24시간 전·1시간 전에 알려드립니다. 페이지를 열어둔 동안 동작합니다.</p>
       <p id="reminder-status" role="status"></p>
       <div role="status" aria-live="polite"><ul id="reminder-list"></ul></div>
     </section>
   </main>
   <script src="js/notifications.js"></script>
+  <script src="js/reminder-panel.js"></script>
+  <script>
+    // 인증 표시만 담당합니다. 기존 달력 코드는 수정하지 않습니다.
+    (function () {
+      const nav = document.getElementById("auth-nav");
+      const userLabel = document.getElementById("auth-user");
+      const loginLink = document.getElementById("auth-login");
+      const signupLink = document.getElementById("auth-signup");
+      const logoutButton = document.getElementById("auth-logout");
+
+      function renderAuth(user) {
+        userLabel.textContent = user ? `${user.nickname}님` : "";
+        loginLink.hidden = Boolean(user);
+        signupLink.hidden = Boolean(user);
+        logoutButton.hidden = !user;
+        nav.hidden = false;
+      }
+
+      async function refreshAuth() {
+        try {
+          const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+          if (response.status === 401) {
+            renderAuth(null);
+            return;
+          }
+          if (!response.ok) throw new Error("로그인 상태 확인 실패");
+          const result = await response.json();
+          renderAuth(result.success && result.user ? result.user : null);
+        } catch (error) {
+          console.error("인증 상태 확인 오류:", error);
+          nav.hidden = true;
+        }
+      }
+
+      logoutButton.addEventListener("click", async function () {
+        logoutButton.disabled = true;
+        try {
+          const response = await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin"
+          });
+          if (!response.ok) throw new Error("로그아웃 실패");
+          renderAuth(null);
+          window.dispatchEvent(new Event("auth-changed"));
+        } catch (error) {
+          alert("로그아웃에 실패했습니다. 다시 시도해 주세요.");
+        } finally {
+          logoutButton.disabled = false;
+        }
+      });
+
+      refreshAuth();
+    })();
+  </script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       // 로컬 날짜: UTC 변환으로 날짜가 바뀌는 것을 방지합니다.
@@ -134,51 +197,11 @@
       }
 
       calendar.render();
-
-      // 알림 담당: 현재 달력의 최신 일정 목록을 사용합니다.
-      const reminderStatus = document.getElementById("reminder-status");
-      const testButton = document.getElementById("test-reminder");
-      if (window.CampusReminders) {
-        let reminderStorage = null;
-        let testEvent = null;
-        try { reminderStorage = window.localStorage; } catch (_) {}
-        const reminders = CampusReminders.createReminder({
-          getEvents: function () {
-            const events = calendar.getEvents();
-            return testEvent ? events.concat([testEvent]) : events;
-          },
-          storage: reminderStorage,
-          onNotify: function (event) {
-            const item = document.createElement("li");
-            item.textContent = event.title + " — " +
-              new Date(event.start).toLocaleString("ko-KR") + " 시작 예정";
-            document.getElementById("reminder-list").prepend(item);
-            if (testEvent && event.id === testEvent.id) {
-              testEvent = null;
-              testButton.disabled = false;
-              reminderStatus.textContent = "테스트 알림이 표시되었습니다.";
-            }
-          }
-        });
-        reminders.start();
-        document.addEventListener("visibilitychange", function () {
-          if (!document.hidden) reminders.check();
-        });
-        testButton.addEventListener("click", function () {
-          testEvent = {
-            id: "reminder-test-" + Date.now(),
-            title: "알림 기능 테스트",
-            start: new Date(Date.now() + 5000),
-            reminderMinutes: 0
-          };
-          testButton.disabled = true;
-          reminderStatus.textContent = "이 페이지에서 약 5초 기다려주세요.";
-        });
+      if (window.CampusReminders && typeof initReminderPanel === "function") {
+        initReminderPanel(calendar);
       } else {
-        testButton.disabled = true;
-        reminderStatus.textContent = "알림 파일을 불러오지 못했습니다. js/notifications.js 경로를 확인해주세요.";
+        document.getElementById("reminder-status").textContent = "알림 파일 경로를 확인해주세요.";
       }
-
       renderScheduleList();
       highlightSelectedDate();
     });
