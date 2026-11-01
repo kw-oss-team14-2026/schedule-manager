@@ -1,43 +1,38 @@
-/* 일정 담당자는 getEvents()로 현재 일정 목록을 전달합니다. */
-(function (root) {
+(function(root){
   'use strict';
-  function createReminder(options) {
-    const { getEvents, onNotify, now = Date.now, storage = null,
-      storageKey = 'campus-reminders-v1', intervalMs = 1000 } = options;
-    let sent = {};
-    let timer = null;
-    try { sent = JSON.parse(storage?.getItem(storageKey) || '{}') || {}; } catch (_) {}
-    if (typeof sent !== 'object' || Array.isArray(sent)) sent = {};
-    function check() {
-      const current = now();
-      const events = getEvents();
-      for (const event of events) {
-        const extra = event.extendedProps || {};
-        const minutes = event.reminderMinutes ?? extra.reminderMinutes ?? 10;
-        if (!event.id || event.allDay || minutes === null || minutes === false) continue;
-        // 날짜만 있는 종일 일정에는 알림을 예약하지 않습니다.
-        if (typeof event.start === 'string' && !event.start.includes('T')) continue;
-        const start = new Date(event.start).getTime();
-        if (!Number.isFinite(start) || typeof minutes !== 'number' || minutes < 0) continue;
-        const due = start - minutes * 60000;
-        const key = JSON.stringify([String(event.id), start, minutes]);
-        // 늦게 페이지를 열어도 시작 전이면 한 번 알립니다. 이미 시작한 일정은 제외합니다.
-        // 시작 시각 알림은 타이머 오차를 고려해 시작 후 60초까지 허용합니다.
-        const deadline = minutes === 0 ? start + 60000 : start;
-        if (current < due || current > deadline || sent[key]) continue;
-        onNotify({ id: String(event.id), title: String(event.title || '제목 없는 일정'), start, minutes });
-        sent[key] = start;
+  function createReminder({getEvents,onNotify,storage=null,now=Date.now,intervalMs=1000}) {
+    let user=null,timer=null,sent={},key='';
+    function stop(){if(timer!==null)clearInterval(timer);timer=null;}
+    function check(){
+      if(user===null)return;
+      const current=now();
+      for(const event of getEvents()){
+        const extra=event.extendedProps||{};
+        const owner=event.user_id??extra.user_id;
+        if(owner==null||String(owner)!==user||!event.id||event.allDay||event.start==null)continue;
+        if(event.reminderEnabled===false||extra.reminderEnabled===false)continue;
+        if(typeof event.start==='string'&&!event.start.includes('T'))continue;
+        const start=new Date(event.start).getTime(),remaining=start-current;
+        if(!Number.isFinite(start)||remaining<=0||remaining>86400000)continue;
+        const stage=remaining<=3600000?'hour':'day';
+        const eventKey=JSON.stringify([String(event.id),start]);
+        const record=sent[eventKey]||{};
+        if(record.hour||(stage==='day'&&record.day))continue;
+        const message=stage==='hour'?'1시간 이내에 시작하는 일정입니다.':'24시간 이내에 시작하는 일정입니다.';
+        onNotify({id:String(event.id),title:String(event.title||'제목 없는 일정'),start,stage,message,userId:user});
+        sent[eventKey]={...record,[stage]:true,start};
       }
-      // 지난 기록은 정리하여 저장 공간이 계속 커지는 것을 방지합니다.
-      for (const key of Object.keys(sent)) if (sent[key] < current - 86400000) delete sent[key];
-      try { storage?.setItem(storageKey, JSON.stringify(sent)); } catch (_) {}
+      for(const k of Object.keys(sent))if(!sent[k]||sent[k].start<=current)delete sent[k];
+      try{storage?.setItem(key,JSON.stringify(sent));}catch(_){}
     }
-    return {
-      check,
-      start() { if (timer === null) { check(); timer = setInterval(check, intervalMs); } },
-      stop() { if (timer !== null) clearInterval(timer); timer = null; }
-    };
+    return {check,stop,setUser(id){
+      stop();user=id==null?null:String(id);sent={};
+      if(user===null)return;
+      key='campus-reminders-v2:'+user;
+      try{const value=JSON.parse(storage?.getItem(key)||'{}');if(value&&typeof value==='object'&&!Array.isArray(value))sent=value;}catch(_){}
+      check();timer=setInterval(check,intervalMs);
+    }};
   }
-  if (typeof module !== 'undefined' && module.exports) module.exports = { createReminder };
-  else root.CampusReminders = { createReminder };
-})(typeof window === 'undefined' ? globalThis : window);
+  if(typeof module!=='undefined'&&module.exports)module.exports={createReminder};
+  else root.CampusReminders={createReminder};
+})(typeof window==='undefined'?globalThis:window);
