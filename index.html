@@ -23,6 +23,7 @@
     label { display: block; margin: 16px 0 6px; font-size: 14px; }
     input, button { font: inherit; }
     input { width: 100%; border: 1px solid #d7dbea; border-radius: 8px; padding: 10px; }
+    input[type="color"] {width: 100%;height: 42px;padding: 4px; cursor: pointer;}
     button[type="submit"] { width: 100%; border: 0; border-radius: 8px; background: #6b4ee6; color: white; padding: 12px; margin-top: 16px; cursor: pointer; }
     ul { list-style: none; padding: 0; }
     li { padding: 12px 0; border-bottom: 1px solid #eee; overflow-wrap: anywhere; }
@@ -54,17 +55,28 @@
 
   <ul id="schedule-list"></ul>
 
-  <form id="schedule-form">
-    <label for="schedule-title">일정 제목</label>
-    <input
-      type="text"
-      id="schedule-title"
-      placeholder="일정 제목을 입력하세요"
-      required
-    >
+<form id="schedule-form">
+  <label for="schedule-title">일정 제목</label>
+  <input
+    type="text"
+    id="schedule-title"
+    placeholder="일정 제목을 입력하세요"
+    required
+  >
 
-    <button type="submit">일정 추가</button>
-  </form>
+  <label for="start-time">시작 시간</label>
+  <input type="time" id="start-time" required>
+
+  <label for="end-time">종료 시간</label>
+  <input type="time" id="end-time" required>
+
+  <label for="schedule-color">일정 색상</label>
+  <input type="color" id="schedule-color" value="#6b4ee6">
+
+  <button type="submit" id="submit-button">일정 추가</button>
+  <button type="button" id="cancel-edit" hidden>수정 취소</button>
+
+</form>
 
   <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
 </section>
@@ -77,6 +89,7 @@
         String(today.getMonth() + 1).padStart(2, "0"),
         String(today.getDate()).padStart(2, "0")].join("-");
       let selectedDate = todayStr;
+      let editingEvent = null;
       const list = document.getElementById("schedule-list");
 
       if (!window.FullCalendar) {
@@ -89,6 +102,12 @@
         initialView: "dayGridMonth",
         initialDate: todayStr,
         locale: "ko",
+        views : {
+          dayGridMonth : {
+            displayEventTime: false
+          }
+        },
+        allDayText: "모든 일정",
         height: "auto",
         headerToolbar: {
           left: "prev,next today",
@@ -99,11 +118,13 @@
         events: [],
         datesSet: function () { highlightSelectedDate(); },
         dateClick: function (info) {
+          resetScheduleForm();
           selectedDate = info.dateStr.slice(0, 10);
           renderScheduleList();
           highlightSelectedDate();
         },
         eventClick: function (info) {
+          resetScheduleForm();
           selectedDate = info.event.startStr.slice(0, 10);
           renderScheduleList();
         }
@@ -147,37 +168,107 @@
 
     deleteButton.addEventListener("click", function () {
       if (confirm("이 일정을 삭제하시겠습니까?")) {
+        if (editingEvent === event) {
+            resetScheduleForm();
+        }
         event.remove();
         renderScheduleList();
       }
     });
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "수정";
+    editButton.style.marginLeft = "10px";
+
+    editButton.addEventListener("click", function () {
+    editingEvent = event;
+
+  scheduleTitle.value = event.title;
+  startTimeInput.value = event.startStr.slice(11, 16);
+  endTimeInput.value = event.endStr.slice(11, 16);
+  scheduleColor.value = event.backgroundColor || "#6b4ee6";
+
+  submitButton.textContent = "수정 완료";
+  cancelEdit.hidden = false;
+});
 
     item.appendChild(title);
+    item.appendChild(editButton);
     item.appendChild(deleteButton);
     list.appendChild(item);
   });
 }
 const scheduleForm = document.getElementById("schedule-form");
 const scheduleTitle = document.getElementById("schedule-title");
+const startTimeInput = document.getElementById("start-time");
+const endTimeInput = document.getElementById("end-time");
+const scheduleColor = document.getElementById("schedule-color");
+const submitButton = document.getElementById("submit-button");
+const cancelEdit = document.getElementById("cancel-edit");
 
 scheduleForm.addEventListener("submit", function (event) {
   event.preventDefault();
 
   const title = scheduleTitle.value.trim();
+  const startTime = startTimeInput.value;
+  const endTime = endTimeInput.value;
 
   if (!title) {
     alert("일정 제목을 입력하세요.");
     return;
   }
 
+  if (startTime >= endTime) {
+    alert("종료 시간은 시작 시간보다 늦어야 합니다.");
+    return;
+  }
+
+  console.log("선택한 색상:", scheduleColor.value);
+
+  if (editingEvent !== null) {
+
+  // 기존 일정 수정
+  const date = editingEvent.startStr.slice(0, 10);
+
+  editingEvent.setProp("title", title);
+
+  editingEvent.setDates(
+    date + "T" + startTime,
+    date + "T" + endTime,
+    { allDay: false }
+  );
+
+  editingEvent.setProp("backgroundColor", scheduleColor.value);
+  editingEvent.setProp("borderColor", scheduleColor.value);
+
+} else {
+
+  // 새로운 일정 추가
   calendar.addEvent({
     title: title,
-    start: selectedDate,
-    allDay: true
+    start: selectedDate + "T" + startTime,
+    end: selectedDate + "T" + endTime,
+    allDay: false,
+    color: scheduleColor.value,
+    backgroundColor: scheduleColor.value,
+    borderColor: scheduleColor.value
   });
 
-  scheduleTitle.value = "";
+}
+
+  resetScheduleForm();
   renderScheduleList();
+});
+
+function resetScheduleForm() {
+  editingEvent = null;
+  scheduleForm.reset();
+  submitButton.textContent = "일정 추가";
+  cancelEdit.hidden = true;
+}
+
+cancelEdit.addEventListener("click", function () {
+  resetScheduleForm();
 });
       calendar.render();
       renderScheduleList();
