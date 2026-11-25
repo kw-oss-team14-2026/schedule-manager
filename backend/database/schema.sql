@@ -8,3 +8,22 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     nickname VARCHAR(50) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS schedules (
+    schedule_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    start_at DATETIME NOT NULL,
+    end_at DATETIME NOT NULL,
+    color CHAR(7) NOT NULL DEFAULT '#6b4ee6',
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+
+    INDEX idx_user_start (user_id, start_at),
+
+    CHECK (end_at > start_at)
+);
