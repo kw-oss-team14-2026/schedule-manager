@@ -133,6 +133,7 @@
           });
           if (!response.ok) throw new Error("로그아웃 실패");
           renderAuth(null);
+          window.location.reload();
         } catch (error) {
           alert("로그아웃에 실패했습니다. 다시 시도해 주세요.");
         } finally {
@@ -228,15 +229,34 @@
     deleteButton.textContent = "삭제";
     deleteButton.style.marginLeft = "10px";
 
-    deleteButton.addEventListener("click", function () {
-      if (confirm("이 일정을 삭제하시겠습니까?")) {
-        if (editingEvent === event) {
+    deleteButton.addEventListener("click", async function () {
+    if (confirm("이 일정을 삭제하시겠습니까?")) {
+        try {
+            const response = await fetch(
+                "/api/schedules/" + event.id,
+                {
+                    method: "DELETE"
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                alert(result.message || "일정 삭제 실패");
+                return;
+            }
+
             resetScheduleForm();
+
+            await loadSchedules();
+
+        } catch (error) {
+            console.error("일정 삭제 오류:", error);
+            alert("일정 삭제 중 오류가 발생했습니다.");
         }
-        event.remove();
-        renderScheduleList();
-      }
+       }
     });
+
     const editButton = document.createElement("button");
     editButton.type = "button";
     editButton.textContent = "수정";
@@ -268,7 +288,7 @@ const scheduleColor = document.getElementById("schedule-color");
 const submitButton = document.getElementById("submit-button");
 const cancelEdit = document.getElementById("cancel-edit");
 
-scheduleForm.addEventListener("submit", function (event) {
+scheduleForm.addEventListener("submit", async function (event) {
   event.preventDefault();
 
   const title = scheduleTitle.value.trim();
@@ -292,35 +312,115 @@ scheduleForm.addEventListener("submit", function (event) {
   // 기존 일정 수정
   const date = editingEvent.startStr.slice(0, 10);
 
-  editingEvent.setProp("title", title);
+  try {
+        const response = await fetch(
+            "/api/schedules/" + editingEvent.id,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title: title,
+                    start_at: date + "T" + startTime,
+                    end_at: date + "T" + endTime,
+                    color: scheduleColor.value
+                })
+            }
+        );
 
-  editingEvent.setDates(
-    date + "T" + startTime,
-    date + "T" + endTime,
-    { allDay: false }
-  );
+        const result = await response.json();
 
-  editingEvent.setProp("backgroundColor", scheduleColor.value);
-  editingEvent.setProp("borderColor", scheduleColor.value);
+        if (!response.ok || !result.success) {
+            alert(result.message || "일정 수정 실패");
+            return;
+        }
+
+        await loadSchedules();
+
+    } catch (error) {
+        console.error("일정 수정 오류:", error);
+        alert("일정 수정 중 오류가 발생했습니다.");
+        return;
+    }
 
 } else {
 
   // 새로운 일정 추가
-  calendar.addEvent({
-    title: title,
-    start: selectedDate + "T" + startTime,
-    end: selectedDate + "T" + endTime,
-    allDay: false,
-    color: scheduleColor.value,
-    backgroundColor: scheduleColor.value,
-    borderColor: scheduleColor.value
-  });
+  try {
+    const response = await fetch("/api/schedules", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            title: title,
+            start_at: selectedDate + "T" + startTime,
+            end_at: selectedDate + "T" + endTime,
+            color: scheduleColor.value
+        })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+        alert(result.message || "일정 추가 실패");
+        return;
+    }
+
+    await loadSchedules();
+
+} catch (error) {
+    console.error("일정 추가 오류:", error);
+    alert("일정 추가 중 오류가 발생했습니다.");
+    return;
+}
 
 }
 
   resetScheduleForm();
   renderScheduleList();
 });
+
+// DB에서 로그인한 회원의 일정 불러오기
+async function loadSchedules() {
+    try {
+        const response = await fetch("/api/schedules");
+
+        if (response.status === 401) {
+            calendar.removeAllEvents();
+            renderScheduleList();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error("일정 조회 실패");
+        }
+
+        calendar.removeAllEvents();
+
+        result.schedules.forEach(function (schedule) {
+            calendar.addEvent({
+                id: String(schedule.schedule_id),
+                title: schedule.title,
+                start: schedule.start_at,
+                end: schedule.end_at,
+                allDay: false,
+                color: schedule.color,
+                backgroundColor: schedule.color,
+                borderColor: schedule.color
+            });
+        });
+
+        renderScheduleList();
+
+    } catch (error) {
+        console.error("일정 조회 오류:", error);
+        alert("일정을 불러오지 못했습니다.");
+    }
+}
 
 function resetScheduleForm() {
   editingEvent = null;
@@ -335,6 +435,7 @@ cancelEdit.addEventListener("click", function () {
       calendar.render();
       renderScheduleList();
       highlightSelectedDate();
+      loadSchedules();
     });
   </script>
 </body>
