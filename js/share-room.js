@@ -15,39 +15,22 @@ const roomParams = new URLSearchParams(window.location.search);
 const roomId = Number(roomParams.get("room_id"));
 console.log("입장한 공유방 번호:", roomId);
 
-// 임시 공유방 및 참여자 데이터
-const roomData = {
-    room_id: roomId,
-    room_name: "오픈소스 팀 프로젝트",
-    members: [
-        { user_id: 1, nickname: "나" },
-        { user_id: 2, nickname: "test2" },
-        { user_id: 3, nickname: "test3" },
-        { user_id: 4, nickname: "고도연" }
-    ]
-};
+// DB에서 조회한 공유방 및 참여자 데이터
+let roomData = null;
 
-let selectedMemberId = 1;
+// 일정 조회 상태 관리
+let isRoomSchedulesLoaded = false;
+let scheduleRequestId = 0;
 
-// 테스트용 일정 날짜 생성
-function getTestDate(day, time) {
-    const date = new Date();
-    date.setDate(date.getDate() - date.getDay() + day);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const dayOfMonth = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${dayOfMonth}T${time}:00`;
-}
+// 현재 로그인한 회원 번호
+let currentUserId = null;
 
-// 임시 참여자별 일정 데이터
-const roomSchedules = [
-    { user_id: 1, title: "전공 수업", start: getTestDate(1, "09:00"), end: getTestDate(1, "12:00"), color: "#6b4ee6" },
-    { user_id: 1, title: "팀 프로젝트", start: getTestDate(3, "14:00"), end: getTestDate(3, "16:00"), color: "#dc2626" },
-    { user_id: 2, title: "교양 수업", start: getTestDate(1, "10:00"), end: getTestDate(1, "13:00"), color: "#2563eb" },
-    { user_id: 2, title: "아르바이트", start: getTestDate(4, "17:00"), end: getTestDate(4, "21:00"), color: "#2563eb" },
-    { user_id: 3, title: "스터디", start: getTestDate(2, "13:00"), end: getTestDate(2, "15:00"), color: "#ea580c" },
-    { user_id: 4, title: "동아리 활동", start: getTestDate(3, "15:00"), end: getTestDate(3, "18:00"), color: "#db2777" }
-];
+// 현재 선택된 참여자 번호
+let selectedMemberId = null;
+
+// DB에서 조회할 참여자 일정 데이터
+let roomSchedules = [];
+
 // 2. FullCalendar 초기 설정
 const roomCalendar = new FullCalendar.Calendar(roomCalendarElement, {
     initialView: "timeGridWeek",
@@ -69,14 +52,42 @@ const roomCalendar = new FullCalendar.Calendar(roomCalendarElement, {
     height: 750,
     events: [],
     datesSet: function () {
-    if (selectedMemberId === null) {
-        renderCommonFreeTime();
+    if (roomData !== null) {
+        loadRoomSchedules();
     }
     }
 });
 
 // 3. 달력 화면 출력
 roomCalendar.render();
+
+// DB에서 공유방 상세 정보 및 참여자 조회
+async function loadRoomInfo() {
+    if (!Number.isSafeInteger(roomId) || roomId <= 0) {
+        roomMessage.textContent = "올바르지 않은 공유방 번호입니다.";
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/sharing/rooms/" + roomId);
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "공유방 정보 조회에 실패했습니다.");
+        }
+
+        roomData = result.room;
+        currentUserId = result.current_user_id;
+        selectedMemberId = currentUserId;
+
+        renderRoomInfo();
+        selectRoomMember(selectedMemberId);
+        await loadRoomSchedules();
+    } catch (error) {
+        console.error("공유방 정보 조회 오류:", error);
+        roomMessage.textContent = error.message;
+    }
+}
 
 // 4. 공유방 기본 정보 표시
 function renderRoomInfo() {
@@ -92,7 +103,9 @@ function renderRoomMembers() {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "room-member-button";
-        button.textContent = member.nickname;
+        button.textContent = member.user_id === currentUserId
+        ? "나"
+        : member.nickname;
         button.classList.toggle("active", member.user_id === selectedMemberId);
 
         button.addEventListener("click", function () {
@@ -112,15 +125,89 @@ function selectRoomMember(userId) {
 
     selectedMemberId = userId;
     roomCalendarElement.classList.remove("common-free-mode");
-    roomCalendarTitle.textContent = member.nickname === "나"
-        ? "나의 일정"
-        : member.nickname + "님의 일정";
+    roomCalendarTitle.textContent = member.user_id === currentUserId
+    ? "나의 일정"
+    : member.nickname + "님의 일정";
 
     roomFreeTimeButton.classList.remove("active");
     roomFreeTimeLegend.hidden = true;
 
     renderRoomMembers();
     renderMemberSchedules();
+}
+
+// API 요청용 날짜 형식 변환
+function formatRoomDateTime(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+// DB에서 공유방 참여자 일정 조회
+async function loadRoomSchedules() {
+    const requestId = ++scheduleRequestId;
+    const rangeStart = roomCalendar.view.activeStart;
+    const rangeEnd = roomCalendar.view.activeEnd;
+
+    const params = new URLSearchParams({
+        start: formatRoomDateTime(rangeStart),
+        end: formatRoomDateTime(rangeEnd)
+    });
+
+    isRoomSchedulesLoaded = false;
+    roomSchedules = [];
+    roomFreeTimeButton.disabled = true;
+    roomCalendar.removeAllEvents();
+    roomMessage.textContent = "일정을 불러오는 중입니다.";
+
+    try {
+        const response = await fetch(
+            "/api/sharing/rooms/" + roomId + "/schedules?" + params.toString()
+        );
+        const result = await response.json();
+
+        if (requestId !== scheduleRequestId) {
+            return;
+        }
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "일정 조회에 실패했습니다.");
+        }
+
+        // API 응답을 FullCalendar용 데이터로 변환
+        roomSchedules = result.schedules.map(function (schedule) {
+            return {
+                user_id: schedule.user_id,
+                title: schedule.title,
+                start: schedule.start_at,
+                end: schedule.end_at,
+                color: schedule.color
+            };
+        });
+
+        isRoomSchedulesLoaded = true;
+        roomFreeTimeButton.disabled = false;
+        roomMessage.textContent = "";
+
+        // 현재 선택된 화면에 일정 표시
+        if (selectedMemberId === null) {
+            renderCommonFreeTime();
+        } else {
+            renderMemberSchedules();
+        }
+    } catch (error) {
+        if (requestId !== scheduleRequestId) {
+            return;
+        }
+
+        console.error("공유방 일정 조회 오류:", error);
+        roomMessage.textContent = error.message;
+        roomFreeTimeLegend.hidden = true;
+    }
 }
 
 // 7. 선택한 참여자의 일정 표시
@@ -142,6 +229,7 @@ function renderMemberSchedules() {
     });
 }
 
+roomFreeTimeButton.disabled = true;
 // 공통 빈 시간 계산
 function calculateCommonFreeTime(rangeStart, rangeEnd) {
     const freeTimes = [];
@@ -202,6 +290,13 @@ function calculateCommonFreeTime(rangeStart, rangeEnd) {
 function renderCommonFreeTime() {
     roomCalendar.removeAllEvents();
 
+    if (!isRoomSchedulesLoaded) {
+        roomFreeTimeLegend.hidden = true;
+        return;
+    }
+
+    roomFreeTimeLegend.hidden = false;
+
     const rangeStart = roomCalendar.view.activeStart;
     const rangeEnd = roomCalendar.view.activeEnd;
     const freeTimes = calculateCommonFreeTime(rangeStart, rangeEnd);
@@ -218,9 +313,12 @@ function renderCommonFreeTime() {
 }
 // 공통 빈 시간 버튼 클릭
 roomFreeTimeButton.addEventListener("click", function () {
+    if (!isRoomSchedulesLoaded) {
+        return;
+    }
+
     selectedMemberId = null;
     roomCalendarElement.classList.add("common-free-mode");
-
     roomCalendarTitle.textContent = "공통 빈 시간";
     roomFreeTimeButton.classList.add("active");
     roomFreeTimeLegend.hidden = false;
@@ -228,6 +326,5 @@ roomFreeTimeButton.addEventListener("click", function () {
     renderRoomMembers();
     renderCommonFreeTime();
 });
-// 8. 공유방 초기 화면 출력
-renderRoomInfo();
-selectRoomMember(selectedMemberId);
+// 8. 공유방 초기 데이터 조회
+loadRoomInfo();

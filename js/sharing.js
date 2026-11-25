@@ -33,41 +33,26 @@ const sharingRoomList = document.getElementById("sharing-room-list");
 // 임시 공유방 목록
 let sharingRooms = [];
 
-// 임시 공유방 고유 번호
-let nextSharingRoomId = 1;
+// 공유방 생성 요청 진행 상태
+let isCreatingSharingRoom = false;
+
 // 받은 초대 관련 HTML 요소
 const sharingInviteList = document.getElementById("sharing-invite-list");
 const sharingInviteCount = document.getElementById("sharing-invite-count");
 const sharingNotificationCount = document.getElementById("sharing-notification-count");
 
-// 임시로 받은 공유방 초대 목록
-let sharingInvites = [
-    {
-        invite_id: 1,
-        room_id: 101,
-        room_name: "오픈소스 팀 프로젝트",
-        sender_nickname: "test2",
-        member_count: 3
-    },
-    {
-        invite_id: 2,
-        room_id: 102,
-        room_name: "기말고사 스터디",
-        sender_nickname: "test3",
-        member_count: 2
-    }
-];
+// DB에서 조회한 공유방 목록
+let sharingInvites = [];
+
 // 현재 선택된 탭
 let currentSharingTab = "rooms";
-
 
 // 2. 일정 공유 모달 열기
 sharingOpen.addEventListener("click", function () {
     sharingModal.showModal();
-
     switchSharingTab("rooms");
+    loadSharingInvites();
 });
-
 
 // 3. 일정 공유 모달 닫기
 sharingClose.addEventListener("click", function () {
@@ -115,11 +100,11 @@ function switchSharingTab(tabName) {
     console.log("현재 일정 공유 탭:", currentSharingTab);
     // 공유방 만들기 탭에서 친구 목록 조회
     if (tabName === "rooms") {
-    renderSharingRooms();
+    loadSharingRooms();
     } else if (tabName === "create") {
     loadSharingFriends();
-    }else if (tabName === "invites") {
-    renderSharingInvites();
+    } else if (tabName === "invites") {
+    loadSharingInvites();
     }
 }
 // 7. 일정 공유용 친구 목록 조회
@@ -304,10 +289,9 @@ function renderSelectedSharingFriends() {
 }
 // 11. 공유방 생성 버튼 활성화 조건
 function updateSharingCreateButton() {
-
     const roomName = sharingRoomName.value.trim();
-
     sharingCreateSubmit.disabled =
+        isCreatingSharingRoom ||
         roomName === "" ||
         selectedSharingFriends.length === 0;
 }
@@ -327,41 +311,82 @@ sharingCreateForm.addEventListener("submit", function (event) {
 // 초기 버튼 상태 설정
 updateSharingCreateButton();
 
-// 12. 임시 공유방 생성
-function createSharingRoom() {
-
+// 12. 공유방 생성 및 친구 초대
+async function createSharingRoom() {
     const roomName = sharingRoomName.value.trim();
 
-    if (!roomName || selectedSharingFriends.length === 0) {
+    if (isCreatingSharingRoom || !roomName || selectedSharingFriends.length === 0) {
         return;
     }
 
-    // 새로운 공유방 객체 생성
-    const room = {
-        room_id: nextSharingRoomId++,
-        room_name: roomName,
-        member_count: 1,
-        invited_friends: [...selectedSharingFriends],
-        created_at: new Date().toISOString()
-    };
+    const friendIds = selectedSharingFriends.map(function (friend) {
+        return friend.user_id;
+    });
 
-    // 공유방 목록에 추가
-    sharingRooms.push(room);
+    isCreatingSharingRoom = true;
+    updateSharingCreateButton();
 
-    console.log("생성된 공유방:", room);
+    try {
+        const response = await fetch("/api/sharing/rooms", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                room_name: roomName,
+                friend_ids: friendIds
+            })
+        });
 
-    // 입력값 및 선택 목록 초기화
-    sharingCreateForm.reset();
-    selectedSharingFriends = [];
+        const result = await response.json();
 
-    renderSharingFriends();
-    renderSelectedSharingFriends();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "공유방 생성에 실패했습니다.");
+        }
 
-    // 내 공유방 탭으로 이동
-    switchSharingTab("rooms");
+        // 입력값 및 선택 목록 초기화
+        sharingCreateForm.reset();
+        selectedSharingFriends = [];
+        renderSharingFriends();
+        renderSelectedSharingFriends();
 
-    sharingMessage.textContent = "임시 공유방을 생성했습니다.";
-    sharingMessage.className = "success";
+        // 내 공유방 탭으로 이동
+        switchSharingTab("rooms");
+
+        sharingMessage.textContent = result.message;
+        sharingMessage.className = "success";
+    } catch (error) {
+        console.error("공유방 생성 오류:", error);
+        sharingMessage.textContent = error.message;
+        sharingMessage.className = "error";
+    } finally {
+        isCreatingSharingRoom = false;
+        updateSharingCreateButton();
+    }
+}
+
+// DB에서 내 공유방 목록 조회
+async function loadSharingRooms() {
+    sharingRoomList.replaceChildren();
+    try {
+        const response = await fetch("/api/sharing/rooms");
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "공유방 목록 조회에 실패했습니다.");
+        }
+
+        sharingRooms = result.rooms;
+        renderSharingRooms();
+    } catch (error) {
+        console.error("공유방 목록 조회 오류:", error);
+        sharingRooms = [];
+
+        if (currentSharingTab === "rooms") {
+            sharingMessage.textContent = error.message;
+            sharingMessage.className = "error";
+        }
+    }
 }
 
 // 13. 공유방 목록 출력
@@ -406,8 +431,8 @@ function renderSharingRooms() {
         meta.className = "sharing-room-meta";
 
         meta.textContent =
-            "참여 인원 " + room.member_count + "명" +
-            " · 초대 대기 " + room.invited_friends.length + "명";
+        "참여 인원 " + room.member_count + "명" +
+        " · 초대 대기 " + room.pending_count + "명";
 
         info.appendChild(title);
         info.appendChild(meta);
@@ -449,27 +474,84 @@ function renderSharingRooms() {
     });
 }
 
-// 14. 임시 공유방 나가기
-function leaveSharingRoom(roomId) {
+// 공유방 나가기 요청 진행 상태
+let isLeavingSharingRoom = false;
+
+// 14. 공유방 나가기
+async function leaveSharingRoom(roomId) {
+    if (isLeavingSharingRoom) {
+        return;
+    }
 
     if (!confirm("이 공유방에서 나가시겠습니까?")) {
         return;
     }
 
-    sharingRooms = sharingRooms.filter(function (room) {
-        return room.room_id !== roomId;
-    });
+    isLeavingSharingRoom = true;
+    try {
+        const response = await fetch(
+            "/api/sharing/rooms/" + roomId + "/members/me",
+            {
+                method: "DELETE"
+            }
+        );
+        const result = await response.json();
 
-    renderSharingRooms();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "공유방 나가기에 실패했습니다.");
+        }
 
-    sharingMessage.textContent = "공유방에서 나갔습니다.";
-    sharingMessage.className = "success";
+        // 처리 결과 표시
+        sharingMessage.textContent = result.message;
+        sharingMessage.className = "success";
+
+        // 실제 공유방 목록 다시 조회
+        await loadSharingRooms();
+    } catch (error) {
+        console.error("공유방 나가기 오류:", error);
+        sharingMessage.textContent = error.message;
+        sharingMessage.className = "error";
+    } finally {
+        isLeavingSharingRoom = false;
+    }
 }
 
 // 15. 공유방 입장
 function enterSharingRoom(roomId) {
     window.location.href = "share-room.html?room_id=" + roomId;
 }
+// DB에서 받은 공유방 초대 목록 조회
+async function loadSharingInvites() {
+    sharingInviteList.replaceChildren();
+    try {
+        const response = await fetch("/api/sharing/invites");
+
+        // 비로그인 상태에서는 알림을 표시하지 않음
+        if (response.status === 401) {
+            sharingInvites = [];
+            updateSharingInviteCount();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "받은 초대 조회에 실패했습니다.");
+        }
+
+        sharingInvites = result.invites;
+        renderSharingInvites();
+        updateSharingInviteCount();
+    } catch (error) {
+        console.error("공유방 초대 조회 오류:", error);
+
+        if (currentSharingTab === "invites") {
+            sharingMessage.textContent = error.message;
+            sharingMessage.className = "error";
+        }
+    }
+}
+
 // 16. 받은 공유방 초대 목록 출력
 function renderSharingInvites() {
 
@@ -517,9 +599,8 @@ function renderSharingInvites() {
         acceptButton.type = "button";
         acceptButton.className = "sharing-action primary";
         acceptButton.textContent = "수락";
-
         acceptButton.addEventListener("click", function () {
-            acceptSharingInvite(invite.invite_id);
+        acceptSharingInvite(invite.room_id);
         });
 
         // 거절 버튼
@@ -527,9 +608,8 @@ function renderSharingInvites() {
         rejectButton.type = "button";
         rejectButton.className = "sharing-action danger";
         rejectButton.textContent = "거절";
-
         rejectButton.addEventListener("click", function () {
-            rejectSharingInvite(invite.invite_id);
+        rejectSharingInvite(invite.room_id);
         });
 
         actions.appendChild(acceptButton);
@@ -543,63 +623,64 @@ function renderSharingInvites() {
         sharingInviteList.appendChild(row);
     });
 }
+// 공유방 초대 처리 진행 상태
+let isProcessingSharingInvite = false;
 
 // 17. 공유방 초대 수락
-function acceptSharingInvite(inviteId) {
-
-    // 수락할 초대 찾기
-    const invite = sharingInvites.find(function (item) {
-        return item.invite_id === inviteId;
-    });
-
-    if (!invite) {
-        return;
-    }
-
-    // 내 공유방에 추가
-    sharingRooms.push({
-        room_id: invite.room_id,
-        room_name: invite.room_name,
-        member_count: invite.member_count + 1,
-        invited_friends: [],
-        created_at: new Date().toISOString()
-    });
-
-    // 받은 초대 목록에서 제거
-    sharingInvites = sharingInvites.filter(function (item) {
-        return item.invite_id !== inviteId;
-    });
-
-    // 알림 숫자 갱신
-    updateSharingInviteCount();
-
-    // 내 공유방으로 이동
-    switchSharingTab("rooms");
-
-    sharingMessage.textContent = "공유방 초대를 수락했습니다.";
-    sharingMessage.className = "success";
+async function acceptSharingInvite(roomId) {
+    await respondSharingInvite(roomId, "accepted");
 }
 
 // 18. 공유방 초대 거절
-function rejectSharingInvite(inviteId) {
-
+async function rejectSharingInvite(roomId) {
     if (!confirm("공유방 초대를 거절하시겠습니까?")) {
         return;
     }
-
-    // 받은 초대 목록에서 제거
-    sharingInvites = sharingInvites.filter(function (item) {
-        return item.invite_id !== inviteId;
-    });
-
-    // 목록 및 알림 숫자 갱신
-    renderSharingInvites();
-    updateSharingInviteCount();
-
-    sharingMessage.textContent = "공유방 초대를 거절했습니다.";
-    sharingMessage.className = "success";
+    await respondSharingInvite(roomId, "rejected");
 }
 
+// 공유방 초대 수락 및 거절 API 요청
+async function respondSharingInvite(roomId, status) {
+    if (isProcessingSharingInvite) {
+        return;
+    }
+
+    isProcessingSharingInvite = true;
+    try {
+        const response = await fetch("/api/sharing/invites/" + roomId, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                status: status
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "공유방 초대 처리에 실패했습니다.");
+        }
+
+        // 받은 초대 목록 및 알림 갱신
+        await loadSharingInvites();
+
+        // 수락한 경우 내 공유방으로 이동
+        if (status === "accepted") {
+            switchSharingTab("rooms");
+        }
+
+        sharingMessage.textContent = result.message;
+        sharingMessage.className = "success";
+    } catch (error) {
+        console.error("공유방 초대 처리 오류:", error);
+        sharingMessage.textContent = error.message;
+        sharingMessage.className = "error";
+    } finally {
+        isProcessingSharingInvite = false;
+    }
+}
 // 19. 받은 초대 알림 숫자 갱신
 function updateSharingInviteCount() {
 
@@ -614,5 +695,5 @@ function updateSharingInviteCount() {
     sharingInviteCount.hidden = count === 0;
 }
 
-// 페이지 최초 실행 시 알림 숫자 표시
-updateSharingInviteCount();
+// 페이지 최초 실행 시 받은 초대 조회
+loadSharingInvites();
