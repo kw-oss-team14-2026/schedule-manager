@@ -11,6 +11,7 @@ const authRoutes = require("./routes/auth");
 const scheduleRoutes = require("./routes/schedules");
 const userRoutes = require("./routes/users");
 const friendRoutes = require("./routes/friends");
+const sharingRoutes = require("./routes/sharing");
 
 const path = require("path");
 
@@ -79,6 +80,9 @@ app.use("/api/users", userRoutes);
 
 // 친구 Router 연결
 app.use("/api/friends", friendRoutes);
+
+// 공유방 Router 연결
+app.use("/api/sharing", sharingRoutes);
 
 app.listen(PORT, () => {
     console.log(`서버 실행 중: http://localhost:${PORT}`);
