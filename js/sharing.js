@@ -468,12 +468,8 @@ function leaveSharingRoom(roomId) {
 
 // 15. 공유방 입장
 function enterSharingRoom(roomId) {
-
-    console.log("입장할 공유방 번호:", roomId);
-
-    alert("공유방 번호: " + roomId + "\n공유방 페이지는 구현 예정입니다.");
+    window.location.href = "share-room.html?room_id=" + roomId;
 }
-
 // 16. 받은 공유방 초대 목록 출력
 function renderSharingInvites() {
 

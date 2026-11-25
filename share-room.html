@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일정 공유방</title>
+    <!-- FullCalendar 표준 번들 -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/all/global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/themes/monarch/global.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/skeleton.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/themes/monarch/theme.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/themes/monarch/palettes/purple.css">
+    <link rel="stylesheet" href="css/share-room.css">
+</head>
+<body>
+    <!-- 1. 공유방 상단 헤더 -->
+    <header class="room-header">
+        <div class="room-header-inner">
+            <a href="index.html" class="room-back-button">← 메인으로</a>
+            <div class="room-info">
+                <h1 id="room-title">일정 공유방</h1>
+                <p id="room-member-count">참여 인원 0명</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. 공유방 메인 영역 -->
+    <main class="room-container">
+        <!-- 참여자 선택 영역 -->
+        <section class="room-member-section">
+            <h2>참여자 일정</h2>
+            <div class="room-member-toolbar">
+                <div id="room-member-buttons"></div>
+                <button id="room-free-time-button" class="room-member-button free-time" type="button">공통 빈 시간</button>
+            </div>
+        </section>
+
+        <!-- 3. 달력 영역 -->
+        <section class="room-calendar-section">
+            <div class="room-calendar-header">
+                <h2 id="room-calendar-title">나의 일정</h2>
+                <span class="room-readonly-label">조회 전용</span>
+            </div>
+
+            <!-- 공통 빈 시간 범례 -->
+            <div id="room-free-time-legend" hidden>
+                <span class="room-legend-color"></span>
+                모든 참여자가 비어 있는 시간
+            </div>
+
+            <!-- FullCalendar 출력 영역 -->
+            <div id="room-calendar"></div>
+        </section>
+
+        <!-- 4. 오류 및 안내 메시지 -->
+        <p id="room-message" role="status"></p>
+    </main>
+
+    <script src="js/share-room.js"></script>
+</body>
+</html>

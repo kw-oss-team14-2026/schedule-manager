@@ -1,0 +1,245 @@
+/* 1. 기본 페이지 스타일 */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, "Malgun Gothic", sans-serif;
+    background: #f5f6fa;
+    color: #252738;
+}
+
+button {
+    font-family: inherit;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* 2. 공유방 상단 헤더 */
+.room-header {
+    background: white;
+    border-bottom: 1px solid #e5e7ef;
+}
+
+.room-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.room-back-button {
+    display: inline-block;
+    margin-bottom: 16px;
+    color: #717589;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.room-back-button:hover {
+    color: #6b4ee6;
+}
+
+.room-info h1 {
+    margin: 0;
+    font-size: 26px;
+}
+
+#room-member-count {
+    margin: 8px 0 0;
+    color: #717589;
+    font-size: 14px;
+}
+
+/* 3. 메인 컨테이너 */
+.room-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+/* 4. 참여자 선택 영역 */
+.room-member-section {
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 1px solid #e5e7ef;
+    border-radius: 12px;
+    background: white;
+}
+
+.room-member-section h2 {
+    margin: 0 0 16px;
+    font-size: 17px;
+}
+
+.room-member-toolbar,
+#room-member-buttons {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* 5. 참여자 선택 버튼 */
+.room-member-button {
+    padding: 10px 18px;
+    border: 1px solid #d7dbea;
+    border-radius: 8px;
+    background: white;
+    color: #252738;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.room-member-button:hover {
+    background: #f5f2ff;
+    border-color: #6b4ee6;
+}
+
+.room-member-button.active {
+    background: #6b4ee6;
+    border-color: #6b4ee6;
+    color: white;
+}
+
+/* 6. 공통 빈 시간 버튼 */
+.room-member-button.free-time {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #15803d;
+}
+
+.room-member-button.free-time:hover {
+    background: #dcfce7;
+}
+
+.room-member-button.free-time.active {
+    background: #15803d;
+    border-color: #15803d;
+    color: white;
+}
+
+/* 7. 달력 영역 */
+.room-calendar-section {
+    padding: 24px;
+    border: 1px solid #e5e7ef;
+    border-radius: 12px;
+    background: white;
+}
+
+.room-calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7ef;
+}
+
+#room-calendar-title {
+    margin: 0;
+    font-size: 18px;
+}
+
+.room-readonly-label {
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #f5f6fa;
+    color: #717589;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+#room-calendar {
+    width: 100%;
+    min-width: 0;
+}
+
+/* 8. 공통 빈 시간 범례 */
+#room-free-time-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    background: #f0fdf4;
+    color: #15803d;
+    font-size: 13px;
+}
+
+.room-legend-color {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: #86efac;
+}
+
+/* 9. FullCalendar 스타일 */
+#room-calendar .fc-toolbar-title {
+    font-size: 22px;
+}
+
+#room-calendar .fc-timegrid-slot {
+    height: 30px;
+}
+
+#room-calendar .fc-event {
+    cursor: default;
+}
+
+#room-calendar.common-free-mode [style*="--fc-event-color"] {
+    --fc-event-color: #86efac !important;
+}
+/* 10. 안내 및 오류 메시지 */
+#room-message {
+    min-height: 20px;
+    margin: 16px 0 0;
+    color: #717589;
+    font-size: 14px;
+}
+
+#room-message.success {
+    color: #15803d;
+}
+
+#room-message.error {
+    color: #a32e40;
+}
+
+/* 11. 모바일 화면 대응 */
+@media (max-width: 600px) {
+    .room-header-inner,
+    .room-container {
+        padding: 16px;
+    }
+
+    .room-info h1 {
+        font-size: 22px;
+    }
+
+    .room-member-section,
+    .room-calendar-section {
+        padding: 12px;
+    }
+
+    .room-member-button {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    #room-calendar .fc-toolbar-title {
+        font-size: 16px;
+    }
+
+    #room-calendar {
+        font-size: 12px;
+    }
+}
