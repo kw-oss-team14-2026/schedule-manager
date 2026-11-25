@@ -1,0 +1,279 @@
+
+/* 1. 상단 친구 관리 버튼 */
+.auth-nav #friends-open {
+    background: #6b4ee6;
+    color: white;
+    border: 1px solid #6b4ee6;
+    font-weight: 600;
+}
+
+.auth-nav #friends-open:hover {
+    background: #593bd0;
+}
+
+
+/* 2. 친구 관리 모달 */
+#friends-modal {
+    width: min(520px, calc(100% - 32px));
+    max-height: 85vh;
+    padding: 24px;
+    border: 1px solid #e5e7ef;
+    border-radius: 16px;
+    background: white;
+    color: #252738;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+}
+
+/* 모달 뒤쪽 배경 */
+#friends-modal::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+
+/* 3. 모달 상단 영역 */
+.friends-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7ef;
+}
+
+.friends-header h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+#friends-close {
+    padding: 7px 12px;
+    border: 1px solid #d7dbea;
+    border-radius: 8px;
+    background: white;
+    color: #252738;
+    cursor: pointer;
+}
+
+#friends-close:hover {
+    background: #f5f6fa;
+}
+
+
+/* 4. 친구 검색 영역 */
+#friend-search-form {
+    margin-top: 20px;
+}
+
+#friend-search-form label {
+    margin: 0 0 8px;
+    font-weight: 600;
+}
+
+.friend-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#friend-search-input {
+    flex: 1;
+    min-width: 0;
+}
+
+#friend-search-input:focus {
+    outline: 2px solid #a999ff;
+    outline-offset: 1px;
+}
+
+#friend-search-form button[type="submit"] {
+    width: auto;
+    margin: 0;
+    padding: 10px 18px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+#friend-search-form button[type="submit"]:hover {
+    background: #593bd0;
+}
+
+#friend-search-result:not(:empty) {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #e5e7ef;
+    border-radius: 8px;
+    background: #f5f6fa;
+}
+
+
+/* 5. 친구 관리 탭 */
+.friends-tabs {
+    display: flex;
+    gap: 6px;
+    margin-top: 24px;
+    padding: 4px;
+    border-radius: 10px;
+    background: #f5f6fa;
+}
+
+.friends-tabs button {
+    flex: 1;
+    padding: 10px 4px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #717589;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.friends-tabs button:hover {
+    background: #eee9ff;
+}
+
+/* 현재 선택된 탭 */
+.friends-tabs button.active {
+    background: #6b4ee6;
+    color: white;
+}
+
+
+/* 6. 친구 목록 */
+#friends-list {
+    min-height: 140px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+#friends-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid #e5e7ef;
+}
+
+/* 친구 정보 */
+.friend-info {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.friend-nickname {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.friend-login-id {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #717589;
+}
+
+/* 버튼 배치 */
+.friend-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* 공통 버튼 스타일 */
+.friend-action {
+    padding: 7px 12px;
+    border: 1px solid #d7dbea;
+    border-radius: 8px;
+    background: white;
+    color: #252738;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.friend-action:hover {
+    background: #f5f6fa;
+}
+
+/* 친구 요청 및 수락 버튼 */
+.friend-action.primary {
+    background: #6b4ee6;
+    border-color: #6b4ee6;
+    color: white;
+}
+
+.friend-action.primary:hover {
+    background: #593bd0;
+}
+
+/* 삭제 및 거절 버튼 */
+.friend-action.danger {
+    color: #a32e40;
+    border-color: #e8c5cb;
+}
+
+.friend-action.danger:hover {
+    background: #fff0f2;
+}
+
+.friend-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 빈 목록 안내 */
+#friends-list .friends-empty {
+    justify-content: center;
+    padding: 40px 0;
+    border: 0;
+    color: #717589;
+    font-size: 14px;
+}
+
+
+/* 7. 처리 결과 메시지 */
+#friends-message {
+    min-height: 20px;
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: #717589;
+}
+
+#friends-message.success {
+    color: #15803d;
+}
+
+#friends-message.error {
+    color: #a32e40;
+}
+
+
+/* 8. 모바일 화면 대응 */
+@media (max-width: 480px) {
+    #friends-modal {
+        padding: 16px;
+    }
+
+    .friends-tabs button {
+        font-size: 13px;
+    }
+
+    .friend-action {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+}
+
+/* 9. 회원 검색 결과 배치 */
+.friend-search-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.friend-search-item + .friend-search-item {
+    margin-top: 12px;
+}

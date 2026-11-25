@@ -41,6 +41,7 @@
     .auth-nav[hidden], .auth-nav [hidden] { display: none !important; }
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } .panel { padding: 16px; } }
   </style>
+  <link rel="stylesheet" href="css/friends.css">
 </head>
 <body>
   <header>
@@ -51,6 +52,7 @@
       <a id="auth-login" href="login.html" hidden>로그인</a>
       <a id="auth-signup" href="signup.html" hidden>회원가입</a>
       <button id="auth-logout" type="button" hidden>로그아웃</button>
+      <button id="friends-open" type="button" hidden>친구 관리</button>
     </nav>
   </header>
   <main>
@@ -91,6 +93,55 @@
   <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
 </section>
   </main>
+  <!-- 친구 관리 모달 -->
+<dialog id="friends-modal">
+
+  <div class="friends-header">
+    <h2>친구 관리</h2>
+    <button id="friends-close" type="button">닫기</button>
+  </div>
+
+  <!-- 회원 검색 영역 -->
+  <form id="friend-search-form">
+    <label for="friend-search-input">친구 검색</label>
+
+    <div class="friend-search-row">
+      <input
+        type="text"
+        id="friend-search-input"
+        placeholder="친구의 로그인 아이디"
+        maxlength="50"
+        required
+      >
+      <button type="submit">검색</button>
+    </div>
+  </form>
+
+  <!-- 회원 검색 결과 -->
+  <div id="friend-search-result"></div>
+
+  <!-- 친구 관리 탭 -->
+  <div class="friends-tabs">
+    <button type="button" data-tab="friends" class="active">
+      친구 목록
+    </button>
+
+    <button type="button" data-tab="received">
+      받은 요청
+    </button>
+
+    <button type="button" data-tab="sent">
+      보낸 요청
+    </button>
+  </div>
+
+  <!-- 친구 목록 및 요청 출력 영역 -->
+  <ul id="friends-list"></ul>
+
+  <!-- 처리 결과 메시지 -->
+  <p id="friends-message" role="status"></p>
+
+</dialog>
   <script>
     // 인증 표시만 담당합니다. 기존 달력 코드는 수정하지 않습니다.
     (function () {
@@ -99,12 +150,14 @@
       const loginLink = document.getElementById("auth-login");
       const signupLink = document.getElementById("auth-signup");
       const logoutButton = document.getElementById("auth-logout");
+      const friendsButton = document.getElementById("friends-open");
 
       function renderAuth(user) {
         userLabel.textContent = user ? `${user.nickname}님` : "";
         loginLink.hidden = Boolean(user);
         signupLink.hidden = Boolean(user);
         logoutButton.hidden = !user;
+        friendsButton.hidden = !user;
         nav.hidden = false;
       }
 
@@ -438,6 +491,7 @@ cancelEdit.addEventListener("click", function () {
       loadSchedules();
     });
   </script>
+    <script src="js/friends.js"></script>
 </body>
 </html>
 
