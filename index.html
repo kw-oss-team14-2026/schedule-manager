@@ -42,6 +42,7 @@
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } .panel { padding: 16px; } }
   </style>
   <link rel="stylesheet" href="css/friends.css">
+  <link rel="stylesheet" href="css/sharing.css">
 </head>
 <body>
   <header>
@@ -53,6 +54,11 @@
       <a id="auth-signup" href="signup.html" hidden>회원가입</a>
       <button id="auth-logout" type="button" hidden>로그아웃</button>
       <button id="friends-open" type="button" hidden>친구 관리</button>
+      <button id="sharing-open" type="button" hidden>
+    일정 공유
+    <span id="sharing-notification-count"
+          class="sharing-badge" hidden>0</span>
+</button>
     </nav>
   </header>
   <main>
@@ -142,6 +148,100 @@
   <p id="friends-message" role="status"></p>
 
 </dialog>
+
+<!-- 일정 공유 모달 -->
+<dialog id="sharing-modal">
+
+    <!-- 모달 헤더 -->
+    <div class="sharing-header">
+        <h2>일정 공유</h2>
+        <button id="sharing-close" type="button">닫기</button>
+    </div>
+
+    <!-- 탭 전환 버튼 -->
+<div class="sharing-tabs">
+
+    <button type="button" data-tab="rooms" class="active">
+        내 공유방
+    </button>
+
+    <button type="button" data-tab="create">
+        공유방 만들기
+    </button>
+
+    <button type="button" data-tab="invites">
+        받은 초대
+        <span id="sharing-invite-count"
+              class="sharing-badge" hidden>0</span>
+    </button>
+
+</div>
+    <!-- 내 공유방 영역 -->
+    <section id="sharing-rooms-panel">
+
+        <h3>참여 중인 공유방</h3>
+
+        <ul id="sharing-room-list"></ul>
+
+        <button id="sharing-create-open" type="button">
+            + 새로운 공유방 만들기
+        </button>
+
+    </section>
+
+    <!-- 공유방 만들기 영역 -->
+    <section id="sharing-create-panel" hidden>
+
+        <form id="sharing-create-form">
+
+            <!-- 공유방 이름 -->
+            <label for="sharing-room-name">공유방 이름</label>
+
+            <input
+                type="text"
+                id="sharing-room-name"
+                placeholder="공유방 이름을 입력하세요."
+                maxlength="50"
+                required
+            >
+
+            <!-- 선택된 참여자 -->
+            <div class="sharing-section-header">
+                <h3>선택한 참여자</h3>
+                <span id="sharing-member-count">1명</span>
+            </div>
+
+            <div id="sharing-selected-members">
+                <span class="sharing-member">나</span>
+            </div>
+
+            <!-- 친구 목록 -->
+            <h3>친구 목록</h3>
+
+            <ul id="sharing-friend-list"></ul>
+
+            <!-- 공유방 생성 버튼 -->
+            <button id="sharing-create-submit" type="submit">
+                공유방 만들기
+            </button>
+
+        </form>
+
+    </section>
+
+    <!-- 받은 공유방 초대 영역 -->
+    <section id="sharing-invites-panel" hidden>
+
+    <h3>받은 공유방 초대</h3>
+
+    <ul id="sharing-invite-list"></ul>
+
+    </section>
+
+    <!-- 성공 및 오류 메시지 -->
+    <p id="sharing-message" role="status"></p>
+
+</dialog>
   <script>
     // 인증 표시만 담당합니다. 기존 달력 코드는 수정하지 않습니다.
     (function () {
@@ -151,6 +251,7 @@
       const signupLink = document.getElementById("auth-signup");
       const logoutButton = document.getElementById("auth-logout");
       const friendsButton = document.getElementById("friends-open");
+      const sharingButton = document.getElementById("sharing-open");
 
       function renderAuth(user) {
         userLabel.textContent = user ? `${user.nickname}님` : "";
@@ -158,6 +259,7 @@
         signupLink.hidden = Boolean(user);
         logoutButton.hidden = !user;
         friendsButton.hidden = !user;
+        sharingButton.hidden = !user;
         nav.hidden = false;
       }
 
@@ -492,6 +594,7 @@ cancelEdit.addEventListener("click", function () {
     });
   </script>
     <script src="js/friends.js"></script>
+    <script src="js/sharing.js"></script>
 </body>
 </html>
 

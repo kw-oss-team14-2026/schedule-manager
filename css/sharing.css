@@ -1,0 +1,637 @@
+/* ========================================
+   1. 일정 공유 버튼
+======================================== */
+
+.auth-nav #sharing-open {
+    background: #6b4ee6;
+    color: white;
+    border: 1px solid #6b4ee6;
+    font-weight: 600;
+}
+
+.auth-nav #sharing-open:hover {
+    background: #593bd0;
+}
+
+
+/* ========================================
+   2. 초대 알림 숫자
+======================================== */
+
+.sharing-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    margin-left: 4px;
+
+    background: #dc2626;
+    color: white;
+
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.sharing-badge[hidden],
+#sharing-modal [hidden] {
+    display: none !important;
+}
+
+
+/* ========================================
+   3. 일정 공유 모달
+======================================== */
+
+#sharing-modal {
+    width: min(560px, calc(100% - 32px));
+    max-height: 85vh;
+    padding: 24px;
+
+    border: 1px solid #e5e7ef;
+    border-radius: 16px;
+
+    background: white;
+    color: #252738;
+
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+}
+
+#sharing-modal::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+#sharing-modal h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+/* ========================================
+   4. 모달 헤더
+======================================== */
+
+.sharing-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7ef;
+}
+
+.sharing-header h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+#sharing-close {
+    padding: 7px 12px;
+
+    border: 1px solid #d7dbea;
+    border-radius: 8px;
+
+    background: white;
+    color: #252738;
+    cursor: pointer;
+}
+
+#sharing-close:hover {
+    background: #f5f6fa;
+}
+
+
+/* ========================================
+   5. 탭 전환 버튼
+======================================== */
+
+.sharing-tabs {
+    display: flex;
+    gap: 6px;
+
+    margin: 20px 0;
+    padding: 4px;
+
+    background: #f5f6fa;
+    border-radius: 10px;
+}
+
+.sharing-tabs button {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 4px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: transparent;
+    color: #717589;
+
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sharing-tabs button:hover {
+    background: #eee9ff;
+}
+
+.sharing-tabs button.active {
+    background: #6b4ee6;
+    color: white;
+}
+
+
+/* ========================================
+   6. 공유방 목록
+======================================== */
+
+#sharing-room-list {
+    min-height: 140px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+}
+
+.sharing-room-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    margin-bottom: 12px;
+    padding: 16px;
+
+    border: 1px solid #e5e7ef;
+    border-radius: 12px;
+
+    background: white;
+}
+
+.sharing-room-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sharing-room-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+
+    border-radius: 12px;
+    background: #eee9ff;
+    color: #6b4ee6;
+
+    font-size: 20px;
+}
+
+.sharing-room-info {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.sharing-room-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.sharing-room-meta {
+    margin-top: 5px;
+    color: #717589;
+    font-size: 13px;
+}
+
+.sharing-room-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.sharing-room-actions .primary {
+    flex: 1;
+}
+
+
+/* ========================================
+   7. 공통 동작 버튼
+======================================== */
+
+.sharing-action {
+    padding: 8px 14px;
+
+    border: 1px solid #d7dbea;
+    border-radius: 8px;
+
+    background: white;
+    color: #252738;
+
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.sharing-action:hover {
+    background: #f5f6fa;
+}
+
+.sharing-action.primary {
+    background: #6b4ee6;
+    border-color: #6b4ee6;
+    color: white;
+}
+
+.sharing-action.primary:hover {
+    background: #593bd0;
+}
+
+.sharing-action.danger {
+    color: #a32e40;
+    border-color: #e8c5cb;
+}
+
+.sharing-action.danger:hover {
+    background: #fff0f2;
+}
+
+.sharing-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* ========================================
+   8. 새로운 공유방 만들기 버튼
+======================================== */
+
+#sharing-create-open {
+    width: 100%;
+    padding: 12px;
+
+    border: 1px dashed #6b4ee6;
+    border-radius: 8px;
+
+    background: white;
+    color: #6b4ee6;
+
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#sharing-create-open:hover {
+    background: #f5f2ff;
+}
+
+
+/* ========================================
+   9. 공유방 이름 입력
+======================================== */
+
+#sharing-create-form label {
+    margin: 0 0 8px;
+    font-weight: 600;
+}
+
+#sharing-room-name {
+    width: 100%;
+    padding: 12px;
+
+    border: 1px solid #d7dbea;
+    border-radius: 8px;
+
+    font-size: 14px;
+}
+
+#sharing-room-name:focus {
+    outline: 2px solid #a999ff;
+    outline-offset: 1px;
+}
+
+
+/* ========================================
+   10. 선택한 참여자 영역
+======================================== */
+
+.sharing-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+.sharing-section-header h3 {
+    margin: 0 !important;
+}
+
+#sharing-member-count {
+    color: #717589;
+    font-size: 13px;
+}
+
+#sharing-selected-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    min-height: 52px;
+    margin-bottom: 24px;
+    padding: 12px;
+
+    border: 1px solid #e5e7ef;
+    border-radius: 10px;
+    background: #f5f6fa;
+}
+
+.sharing-member {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 6px 12px;
+    border-radius: 999px;
+
+    background: #eee9ff;
+    color: #6b4ee6;
+
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.sharing-member-remove {
+    padding: 0 2px;
+    border: none;
+
+    background: transparent;
+    color: #6b4ee6;
+
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.sharing-member-remove:hover {
+    color: #a32e40;
+}
+
+
+/* ========================================
+   11. 친구 목록 및 선택 버튼
+======================================== */
+
+#sharing-friend-list {
+    max-height: 240px;
+    margin: 0;
+    padding: 0;
+
+    overflow-y: auto;
+    list-style: none;
+}
+
+.sharing-friend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7ef;
+}
+
+.sharing-friend-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+    background: #eee9ff;
+    color: #6b4ee6;
+
+    font-weight: 600;
+}
+
+.sharing-friend-info {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.sharing-friend-nickname {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sharing-friend-login-id {
+    margin-top: 4px;
+    color: #717589;
+    font-size: 12px;
+}
+
+.sharing-add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #6b4ee6;
+    color: white;
+
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.sharing-add-button:hover {
+    background: #593bd0;
+}
+
+.sharing-add-button.selected {
+    background: #eee9ff;
+    color: #6b4ee6;
+}
+
+
+/* ========================================
+   12. 공유방 생성 버튼
+======================================== */
+
+#sharing-create-submit {
+    width: 100%;
+    margin-top: 24px;
+    padding: 13px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #6b4ee6;
+    color: white;
+
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#sharing-create-submit:hover {
+    background: #593bd0;
+}
+
+#sharing-create-submit:disabled {
+    background: #b4a8e8;
+    cursor: not-allowed;
+}
+
+
+/* ========================================
+   13. 받은 공유방 초대
+======================================== */
+
+#sharing-invite-list {
+    min-height: 140px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sharing-invite-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    margin-bottom: 12px;
+    padding: 16px;
+
+    border: 1px solid #e5e7ef;
+    border-radius: 12px;
+}
+
+.sharing-invite-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.sharing-invite-sender {
+    color: #717589;
+    font-size: 13px;
+}
+
+.sharing-invite-meta {
+    color: #717589;
+    font-size: 12px;
+}
+
+.sharing-invite-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.sharing-invite-actions .primary {
+    flex: 1;
+}
+
+
+/* ========================================
+   14. 빈 목록 및 처리 결과 메시지
+======================================== */
+
+#sharing-modal .sharing-empty {
+    padding: 40px 12px;
+
+    border: none;
+    color: #717589;
+
+    text-align: center;
+    font-size: 14px;
+}
+
+#sharing-message {
+    min-height: 20px;
+    margin: 16px 0 0;
+
+    color: #717589;
+    font-size: 13px;
+}
+
+#sharing-message.success {
+    color: #15803d;
+}
+
+#sharing-message.error {
+    color: #a32e40;
+}
+
+
+/* ========================================
+   15. 모바일 화면 대응
+======================================== */
+
+@media (max-width: 480px) {
+    #sharing-modal {
+        padding: 16px;
+    }
+
+    .sharing-header h2 {
+        font-size: 20px;
+    }
+
+    .sharing-tabs {
+        gap: 3px;
+    }
+
+    .sharing-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    height: 44px;
+    margin: 0;
+    padding: 10px 4px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 8px;
+
+    background: transparent;
+    color: #717589;
+
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+    .sharing-room-item,
+    .sharing-invite-item {
+        padding: 12px;
+    }
+
+    .sharing-action {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .sharing-badge {
+        min-width: 16px;
+        height: 16px;
+        font-size: 10px;
+    }
+}
