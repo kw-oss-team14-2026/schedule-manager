@@ -563,6 +563,126 @@ app.delete("/api/schedules/:id", async (req, res) => {
     }
 });
 
+// 회원 검색 API
+app.get("/api/users/search", async (req, res) => {
+    // 로그인 여부 확인
+    if (!req.session.user) {
+        return res.status(401).json({
+            success: false,
+            message: "로그인이 필요합니다."
+        });
+    }
+
+    const userId = req.session.user.user_id;
+    const loginId = String(req.query.login_id || "").trim();
+
+    // 검색어 확인
+    if (!loginId) {
+        return res.status(400).json({
+            success: false,
+            message: "검색할 아이디를 입력하세요."
+        });
+    }
+
+    try {
+        const [rows] = await pool.query(
+            `SELECT user_id, login_id, nickname
+             FROM users
+             WHERE login_id = ?
+             AND user_id <> ?`,
+            [loginId, userId]
+        );
+
+        return res.json({
+            success: true,
+            users: rows
+        });
+
+    } catch (error) {
+        console.error("회원 검색 오류:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "회원 검색 중 오류가 발생했습니다."
+        });
+    }
+});
+
+// 친구 요청 API
+app.post("/api/friends/request", async (req, res) => {
+    // 로그인 여부 확인
+    if (!req.session.user) {
+        return res.status(401).json({
+            success: false,
+            message: "로그인이 필요합니다."
+        });
+    }
+
+    const requesterId = req.session.user.user_id;
+    const receiverId = Number(req.body.receiver_id);
+
+    // 상대방 ID 검증
+    if (!Number.isInteger(receiverId) || receiverId <= 0) {
+        return res.status(400).json({
+            success: false,
+            message: "올바른 회원 ID를 입력하세요."
+        });
+    }
+
+    // 자기 자신에게 요청하는 경우
+    if (requesterId === receiverId) {
+        return res.status(400).json({
+            success: false,
+            message: "자기 자신에게 친구 요청을 보낼 수 없습니다."
+        });
+    }
+
+    try {
+        // 상대방이 존재하는지 확인
+        const [users] = await pool.query(
+            "SELECT user_id FROM users WHERE user_id = ?",
+            [receiverId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "존재하지 않는 회원입니다."
+            });
+        }
+
+        // 친구 요청 저장
+        const [result] = await pool.query(
+            `INSERT INTO friendships
+             (requester_id, receiver_id)
+             VALUES (?, ?)`,
+            [requesterId, receiverId]
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: "친구 요청을 보냈습니다.",
+            friendship_id: result.insertId
+        });
+
+    } catch (error) {
+        // 중복 친구 요청 처리
+        if (error.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({
+                success: false,
+                message: "이미 친구 관계 또는 요청 기록이 존재합니다."
+            });
+        }
+
+        console.error("친구 요청 오류:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "친구 요청 중 오류가 발생했습니다."
+        });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`서버 실행 중: http://localhost:${PORT}`);
 });
