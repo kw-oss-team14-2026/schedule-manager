@@ -23,6 +23,7 @@
     label { display: block; margin: 16px 0 6px; font-size: 14px; }
     input, button { font: inherit; }
     input { width: 100%; border: 1px solid #d7dbea; border-radius: 8px; padding: 10px; }
+    input[type="color"] {width: 100%;height: 42px;padding: 4px; cursor: pointer;}
     button[type="submit"] { width: 100%; border: 0; border-radius: 8px; background: #6b4ee6; color: white; padding: 12px; margin-top: 16px; cursor: pointer; }
     ul { list-style: none; padding: 0; }
     li { padding: 12px 0; border-bottom: 1px solid #eee; overflow-wrap: anywhere; }
@@ -40,6 +41,8 @@
     .auth-nav[hidden], .auth-nav [hidden] { display: none !important; }
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } .panel { padding: 16px; } }
   </style>
+  <link rel="stylesheet" href="css/friends.css">
+  <link rel="stylesheet" href="css/sharing.css">
 </head>
 <body>
   <header>
@@ -50,6 +53,12 @@
       <a id="auth-login" href="login.html" hidden>로그인</a>
       <a id="auth-signup" href="signup.html" hidden>회원가입</a>
       <button id="auth-logout" type="button" hidden>로그아웃</button>
+      <button id="friends-open" type="button" hidden>친구 관리</button>
+      <button id="sharing-open" type="button" hidden>
+    일정 공유
+    <span id="sharing-notification-count"
+          class="sharing-badge" hidden>0</span>
+</button>
     </nav>
   </header>
   <main>
@@ -59,18 +68,186 @@
       <p id="status" role="status"></p>
     </section>
     <section class="panel" id="schedule">
-      <h2>선택한 날짜의 일정</h2>
-      <p id="selected-date" aria-live="polite"></p>
-      <ul id="schedule-list"></ul>
-      <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
-    </section>
+  <h2>선택한 날짜의 일정</h2>
+  <p id="selected-date" aria-live="polite"></p>
+
+  <ul id="schedule-list"></ul>
+
+<form id="schedule-form">
+  <label for="schedule-title">일정 제목</label>
+  <input
+    type="text"
+    id="schedule-title"
+    placeholder="일정 제목을 입력하세요"
+    required
+  >
+
+  <label for="start-time">시작 시간</label>
+  <input type="time" id="start-time" required>
+
+  <label for="end-time">종료 시간</label>
+  <input type="time" id="end-time" required>
+
+  <label for="schedule-color">일정 색상</label>
+  <input type="color" id="schedule-color" value="#6b4ee6">
+
+  <button type="submit" id="submit-button">일정 추가</button>
+  <button type="button" id="cancel-edit" hidden>수정 취소</button>
+
+</form>
+
+  <p class="hint">날짜를 클릭해 일정을 확인하세요.</p>
+</section>
     <section class="panel" aria-label="일정 알림">
       <h2>일정 알림</h2>
-      <p class="hint">로그인한 사용자의 일정 시작 24시간 전·1시간 전에 알려드립니다. 페이지를 열어둔 동안 동작합니다.</p>
+      <p class="hint">내 일정 시작 24시간 전·1시간 전에 알려드립니다. 늦게 접속하면 현재 남은 시간에 맞춰 표시합니다. 페이지를 열어둔 동안 동작합니다.</p>
       <p id="reminder-status" role="status"></p>
       <div role="status" aria-live="polite"><ul id="reminder-list"></ul></div>
     </section>
   </main>
+  <!-- 친구 관리 모달 -->
+<dialog id="friends-modal">
+
+  <div class="friends-header">
+    <h2>친구 관리</h2>
+    <button id="friends-close" type="button">닫기</button>
+  </div>
+
+  <!-- 회원 검색 영역 -->
+  <form id="friend-search-form">
+    <label for="friend-search-input">친구 검색</label>
+
+    <div class="friend-search-row">
+      <input
+        type="text"
+        id="friend-search-input"
+        placeholder="친구의 로그인 아이디"
+        maxlength="50"
+        required
+      >
+      <button type="submit">검색</button>
+    </div>
+  </form>
+
+  <!-- 회원 검색 결과 -->
+  <div id="friend-search-result"></div>
+
+  <!-- 친구 관리 탭 -->
+  <div class="friends-tabs">
+    <button type="button" data-tab="friends" class="active">
+      친구 목록
+    </button>
+
+    <button type="button" data-tab="received">
+      받은 요청
+    </button>
+
+    <button type="button" data-tab="sent">
+      보낸 요청
+    </button>
+  </div>
+
+  <!-- 친구 목록 및 요청 출력 영역 -->
+  <ul id="friends-list"></ul>
+
+  <!-- 처리 결과 메시지 -->
+  <p id="friends-message" role="status"></p>
+
+</dialog>
+
+<!-- 일정 공유 모달 -->
+<dialog id="sharing-modal">
+
+    <!-- 모달 헤더 -->
+    <div class="sharing-header">
+        <h2>일정 공유</h2>
+        <button id="sharing-close" type="button">닫기</button>
+    </div>
+
+    <!-- 탭 전환 버튼 -->
+<div class="sharing-tabs">
+
+    <button type="button" data-tab="rooms" class="active">
+        내 공유방
+    </button>
+
+    <button type="button" data-tab="create">
+        공유방 만들기
+    </button>
+
+    <button type="button" data-tab="invites">
+        받은 초대
+        <span id="sharing-invite-count"
+              class="sharing-badge" hidden>0</span>
+    </button>
+
+</div>
+    <!-- 내 공유방 영역 -->
+    <section id="sharing-rooms-panel">
+
+        <h3>참여 중인 공유방</h3>
+
+        <ul id="sharing-room-list"></ul>
+
+        <button id="sharing-create-open" type="button">
+            + 새로운 공유방 만들기
+        </button>
+
+    </section>
+
+    <!-- 공유방 만들기 영역 -->
+    <section id="sharing-create-panel" hidden>
+
+        <form id="sharing-create-form">
+
+            <!-- 공유방 이름 -->
+            <label for="sharing-room-name">공유방 이름</label>
+
+            <input
+                type="text"
+                id="sharing-room-name"
+                placeholder="공유방 이름을 입력하세요."
+                maxlength="50"
+                required
+            >
+
+            <!-- 선택된 참여자 -->
+            <div class="sharing-section-header">
+                <h3>선택한 참여자</h3>
+                <span id="sharing-member-count">1명</span>
+            </div>
+
+            <div id="sharing-selected-members">
+                <span class="sharing-member">나</span>
+            </div>
+
+            <!-- 친구 목록 -->
+            <h3>친구 목록</h3>
+
+            <ul id="sharing-friend-list"></ul>
+
+            <!-- 공유방 생성 버튼 -->
+            <button id="sharing-create-submit" type="submit">
+                공유방 만들기
+            </button>
+
+        </form>
+
+    </section>
+
+    <!-- 받은 공유방 초대 영역 -->
+    <section id="sharing-invites-panel" hidden>
+
+    <h3>받은 공유방 초대</h3>
+
+    <ul id="sharing-invite-list"></ul>
+
+    </section>
+
+    <!-- 성공 및 오류 메시지 -->
+    <p id="sharing-message" role="status"></p>
+
+</dialog>
   <script src="js/notifications.js"></script>
   <script src="js/reminder-panel.js"></script>
   <script>
@@ -81,12 +258,16 @@
       const loginLink = document.getElementById("auth-login");
       const signupLink = document.getElementById("auth-signup");
       const logoutButton = document.getElementById("auth-logout");
+      const friendsButton = document.getElementById("friends-open");
+      const sharingButton = document.getElementById("sharing-open");
 
       function renderAuth(user) {
         userLabel.textContent = user ? `${user.nickname}님` : "";
         loginLink.hidden = Boolean(user);
         signupLink.hidden = Boolean(user);
         logoutButton.hidden = !user;
+        friendsButton.hidden = !user;
+        sharingButton.hidden = !user;
         nav.hidden = false;
       }
 
@@ -116,6 +297,7 @@
           if (!response.ok) throw new Error("로그아웃 실패");
           renderAuth(null);
           window.dispatchEvent(new Event("auth-changed"));
+          window.location.reload();
         } catch (error) {
           alert("로그아웃에 실패했습니다. 다시 시도해 주세요.");
         } finally {
@@ -134,6 +316,7 @@
         String(today.getMonth() + 1).padStart(2, "0"),
         String(today.getDate()).padStart(2, "0")].join("-");
       let selectedDate = todayStr;
+      let editingEvent = null;
       const list = document.getElementById("schedule-list");
 
       if (!window.FullCalendar) {
@@ -146,6 +329,12 @@
         initialView: "dayGridMonth",
         initialDate: todayStr,
         locale: "ko",
+        views : {
+          dayGridMonth : {
+            displayEventTime: false
+          }
+        },
+        allDayText: "모든 일정",
         height: "auto",
         headerToolbar: {
           left: "prev,next today",
@@ -156,11 +345,13 @@
         events: [],
         datesSet: function () { highlightSelectedDate(); },
         dateClick: function (info) {
+          resetScheduleForm();
           selectedDate = info.dateStr.slice(0, 10);
           renderScheduleList();
           highlightSelectedDate();
         },
         eventClick: function (info) {
+          resetScheduleForm();
           selectedDate = info.event.startStr.slice(0, 10);
           renderScheduleList();
         }
@@ -177,34 +368,269 @@
         });
       }
 
-      function renderScheduleList() {
-        document.getElementById("selected-date").textContent = selectedDate;
-        list.replaceChildren();
-        const events = calendar.getEvents().filter(function (event) {
-          return event.startStr.slice(0, 10) === selectedDate;
-        });
-        if (events.length === 0) {
-          const empty = document.createElement("li");
-          empty.textContent = "등록된 일정이 없습니다.";
-          list.appendChild(empty);
-        }
-        events.forEach(function (event) {
-          const item = document.createElement("li");
-          // 입력한 제목을 HTML이 아닌 텍스트로 표시합니다.
-          item.textContent = event.title;
-          list.appendChild(item);
-        });
-      }
+  function renderScheduleList() {
+  document.getElementById("selected-date").textContent = selectedDate;
+  list.replaceChildren();
 
+  const events = calendar.getEvents().filter(function (event) {
+    return event.startStr.slice(0, 10) === selectedDate;
+  });
+
+  if (events.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "등록된 일정이 없습니다.";
+    list.appendChild(empty);
+  }
+
+  events.forEach(function (event) {
+    const item = document.createElement("li");
+
+    const title = document.createElement("span");
+    title.textContent = event.title;
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = "삭제";
+    deleteButton.style.marginLeft = "10px";
+
+    deleteButton.addEventListener("click", async function () {
+    if (confirm("이 일정을 삭제하시겠습니까?")) {
+        try {
+            const response = await fetch(
+                "/api/schedules/" + event.id,
+                {
+                    method: "DELETE"
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                alert(result.message || "일정 삭제 실패");
+                return;
+            }
+
+            resetScheduleForm();
+
+            await loadSchedules();
+
+        } catch (error) {
+            console.error("일정 삭제 오류:", error);
+            alert("일정 삭제 중 오류가 발생했습니다.");
+        }
+       }
+    });
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "수정";
+    editButton.style.marginLeft = "10px";
+
+    editButton.addEventListener("click", function () {
+    editingEvent = event;
+
+  scheduleTitle.value = event.title;
+  startTimeInput.value = event.startStr.slice(11, 16);
+  endTimeInput.value = event.endStr.slice(11, 16);
+  scheduleColor.value = event.backgroundColor || "#6b4ee6";
+
+  submitButton.textContent = "수정 완료";
+  cancelEdit.hidden = false;
+});
+
+    item.appendChild(title);
+    item.appendChild(editButton);
+    item.appendChild(deleteButton);
+    list.appendChild(item);
+  });
+}
+const scheduleForm = document.getElementById("schedule-form");
+const scheduleTitle = document.getElementById("schedule-title");
+const startTimeInput = document.getElementById("start-time");
+const endTimeInput = document.getElementById("end-time");
+const scheduleColor = document.getElementById("schedule-color");
+const submitButton = document.getElementById("submit-button");
+const cancelEdit = document.getElementById("cancel-edit");
+
+scheduleForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+
+  const title = scheduleTitle.value.trim();
+  const startTime = startTimeInput.value;
+  const endTime = endTimeInput.value;
+
+  if (!title) {
+    alert("일정 제목을 입력하세요.");
+    return;
+  }
+
+  if (startTime >= endTime) {
+    alert("종료 시간은 시작 시간보다 늦어야 합니다.");
+    return;
+  }
+
+  console.log("선택한 색상:", scheduleColor.value);
+
+  if (editingEvent !== null) {
+
+  // 기존 일정 수정
+  const date = editingEvent.startStr.slice(0, 10);
+
+  try {
+        const response = await fetch(
+            "/api/schedules/" + editingEvent.id,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title: title,
+                    start_at: date + "T" + startTime,
+                    end_at: date + "T" + endTime,
+                    color: scheduleColor.value
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            alert(result.message || "일정 수정 실패");
+            return;
+        }
+
+        await loadSchedules();
+
+    } catch (error) {
+        console.error("일정 수정 오류:", error);
+        alert("일정 수정 중 오류가 발생했습니다.");
+        return;
+    }
+
+} else {
+
+  // 새로운 일정 추가
+  try {
+    const response = await fetch("/api/schedules", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            title: title,
+            start_at: selectedDate + "T" + startTime,
+            end_at: selectedDate + "T" + endTime,
+            color: scheduleColor.value
+        })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+        alert(result.message || "일정 추가 실패");
+        return;
+    }
+
+    await loadSchedules();
+
+} catch (error) {
+    console.error("일정 추가 오류:", error);
+    alert("일정 추가 중 오류가 발생했습니다.");
+    return;
+}
+
+}
+
+  resetScheduleForm();
+  renderScheduleList();
+});
+
+// DB에서 로그인한 회원의 일정 불러오기
+let scheduleRequestVersion = 0;
+async function loadSchedules() {
+    const request = ++scheduleRequestVersion;
+    try {
+        const response = await fetch("/api/schedules", {credentials: "same-origin", cache: "no-store"});
+        if (request !== scheduleRequestVersion) return;
+
+        if (response.status === 401) {
+            calendar.removeAllEvents();
+            renderScheduleList();
+            return;
+        }
+
+        const result = await response.json();
+        if (request !== scheduleRequestVersion) return;
+
+        if (!response.ok || !result.success || !Array.isArray(result.schedules)) {
+            throw new Error("일정 조회 실패");
+        }
+
+        // 한 번에 교체하여 삭제·수정된 일정을 알림에도 즉시 반영합니다.
+        calendar.batchRendering(function () {
+          calendar.removeAllEvents();
+          result.schedules.forEach(function (schedule) {
+            calendar.addEvent({
+                id: String(schedule.schedule_id),
+                title: schedule.title,
+                start: schedule.start_at,
+                end: schedule.end_at,
+                allDay: false,
+                color: schedule.color,
+                backgroundColor: schedule.color,
+                borderColor: schedule.color,
+                extendedProps: { user_id: schedule.user_id }
+            });
+          });
+        });
+        document.getElementById('status').textContent = '';
+
+        renderScheduleList();
+
+    } catch (error) {
+        if (request !== scheduleRequestVersion) return;
+        console.error("일정 조회 오류:", error);
+        calendar.removeAllEvents();
+        renderScheduleList();
+        document.getElementById('status').textContent = '일정을 불러오지 못했습니다. 연결을 확인해주세요.';
+    }
+}
+
+function resetScheduleForm() {
+  editingEvent = null;
+  scheduleForm.reset();
+  submitButton.textContent = "일정 추가";
+  cancelEdit.hidden = true;
+}
+
+cancelEdit.addEventListener("click", function () {
+  resetScheduleForm();
+});
       calendar.render();
-      if (window.CampusReminders && typeof initReminderPanel === "function") {
+      if (window.CampusReminders && typeof initReminderPanel === 'function') {
         initReminderPanel(calendar);
       } else {
-        document.getElementById("reminder-status").textContent = "알림 파일 경로를 확인해주세요.";
+        document.getElementById('reminder-status').textContent = '알림 파일을 불러오지 못했습니다.';
       }
+      window.addEventListener('auth-changed', function () {
+        ++scheduleRequestVersion;
+        calendar.removeAllEvents();
+        resetScheduleForm();
+        renderScheduleList();
+      });
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) loadSchedules();
+      });
+      // 다른 탭이나 공유방에서 변경한 내 일정도 갱신합니다.
+      setInterval(function () { if (!document.hidden) loadSchedules(); }, 30000);
       renderScheduleList();
       highlightSelectedDate();
+      loadSchedules();
     });
   </script>
+    <script src="js/friends.js"></script>
+    <script src="js/sharing.js"></script>
 </body>
 </html>
+
